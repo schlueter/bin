@@ -1,0 +1,7 @@
+#!/usr/bin/env python
+
+import yaml
+import os
+
+
+[os.system(script) for script in yaml.load(open(".travis.yml"))["script"]]
