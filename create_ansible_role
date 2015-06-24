@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-for directory in defaults files handlers meta tasks templates; do
+for directory in defaults files handlers meta tasks templates vars; do
   mkdir -p playbooks/roles/$1/$directory
 done
 
@@ -20,7 +20,7 @@ dependencies: []
 && echo Initialized meta/main.yml file for $1 \
 || echo meta/main.yml already exists, desisting
 
-for directory in defaults meta tasks; do
+for directory in meta tasks; do
   touch playbooks/roles/$1/$directory/main.yml
 done
 
