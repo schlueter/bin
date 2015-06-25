@@ -9,6 +9,7 @@ while sleep 1; do
 
   function pass_and_say() {
     echo -e "\033[92m$@\033[0m";
+    say $@
   }
 
   function warn_and_say() {
@@ -25,10 +26,18 @@ while sleep 1; do
   traviscitest_exit_code=${PIPESTATUS[0]}
 
   notice running ansible-lint
+  ansible_lint_exit_codes=()
   for playbook in $(find playbooks -depth 1 -name "*.yml")
   do
-    ansible-lint $playbook || warn_and_say $playbook failing linting
+    ansible-lint $playbook || ansible_lint_exit_codes+=${PIPESTATUS[0]}
   done
+
+  if [[ ${#ansible_lint_exit_codes[@]/0} != 0 ]]
+  then
+    warn_and_say failing linting
+  else
+    pass passing linting
+  fi
 
   if [[ -f ".traviscitest_result" ]]
   then
@@ -41,16 +50,16 @@ while sleep 1; do
   then
     if [[ "$previous_exit_code" != 0 ]]
     then
-      pass_and_say now passing syntax check
+      pass_and_say now passing travistests check
     else
-      pass passing syntax check
+      pass passing travistests check
     fi
   else
     if [[ "$previous_exit_code" == 0 ]]
     then
-      warn_and_say failing syntax check
+      warn_and_say failing travistests check
     else
-      warn_and_say still failing syntax check
+      warn_and_say still failing travistests check
     fi
   fi
 
