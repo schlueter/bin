@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+while sleep 1; do
+  find playbooks -name "*.yml" | \
+  entr bash -c '
+  function pass() {
+    echo -e "\033[92m$@\033[0m";
+  }
+
+  function pass_and_say() {
+    echo -e "\033[92m$@\033[0m";
+  }
+
+  function warn_and_say() {
+    echo -e "\033[91m$@\033[0m";
+    say $@
+  }
+
+  function notice() {
+    echo -e "\033[93m$@\033[0m";
+  }
+
+  notice running traviscitest
+  traviscitest 2> /tmp/traviscitest_out
+  traviscitest_exit_code=${PIPESTATUS[0]}
+
+  notice running ansible-lint
+  for playbook in $(find playbooks -depth 1 -name "*.yml")
+  do
+    ansible-lint $playbook || warn_and_say $playbook failing linting
+  done
+
+  if [[ -f ".traviscitest_result" ]]
+  then
+    previous_exit_code=$(cat .traviscitest_result)
+  else
+    previous_exit_code=0
+  fi
+
+  if [[ "$traviscitest_exit_code" == 0 ]]
+  then
+    if [[ "$previous_exit_code" != 0 ]]
+    then
+      pass_and_say now passing syntax check
+    else
+      pass passing syntax check
+    fi
+  else
+    if [[ "$previous_exit_code" == 0 ]]
+    then
+      warn_and_say failing syntax check
+    else
+      warn_and_say still failing syntax check
+    fi
+  fi
+
+  cat /tmp/traviscitest_out
+  echo $traviscitest_exit_code > .traviscitest_result
+  rm /tmp/travistest_out' 2> /dev/null
+done
+

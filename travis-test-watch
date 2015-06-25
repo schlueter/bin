@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-while sleep 1; do
-  find playbooks -name "*.yml" -o -name "*.j2" | \
-  entr bash -c 'travistest; if [[ $? != 0 ]]; then say test failed; fi';
-done
-
