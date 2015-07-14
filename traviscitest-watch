@@ -25,20 +25,6 @@ while sleep 1; do
   traviscitest 2> /tmp/traviscitest_out
   traviscitest_exit_code=${PIPESTATUS[0]}
 
-  notice running ansible-lint
-  ansible_lint_exit_codes=()
-  for playbook in $(find playbooks -depth 1 -name "*.yml")
-  do
-    ansible-lint $playbook || ansible_lint_exit_codes+=${PIPESTATUS[0]}
-  done
-
-  if [[ ${#ansible_lint_exit_codes[@]/0} != 0 ]]
-  then
-    warn_and_say failing linting
-  else
-    pass passing linting
-  fi
-
   if [[ -f ".traviscitest_result" ]]
   then
     previous_exit_code=$(cat .traviscitest_result)
@@ -65,6 +51,6 @@ while sleep 1; do
 
   cat /tmp/traviscitest_out
   echo $traviscitest_exit_code > .traviscitest_result
-  rm /tmp/travistest_out' 2> /dev/null
+  rm /tmp/travistest_out 2> /dev/null'
 done
 
