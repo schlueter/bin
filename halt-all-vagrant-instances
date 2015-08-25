@@ -1,0 +1,2 @@
+#!/usr/bin/env sh
+vagrant global-status --prune | awk '/running/{ print $1 }' | xargs -n1 vagrant halt
