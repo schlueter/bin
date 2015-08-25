@@ -2,10 +2,15 @@
 
 control_c() {
     kill $$
+    cd -
     exit
 }
 
 trap control_c SIGINT
+
+if [[ $(git rev-parse --is-inside-work-tree 2> /dev/null) ]]; then
+  cd $(git rev-parse --show-toplevel)
+fi
 
 while sleep 1; do
   find playbooks -maxdepth 1 -name "*.yml" | \
@@ -27,6 +32,7 @@ while sleep 1; do
   function notice() {
     echo -e "\033[93m$@\033[0m";
   }
+
 
   traviscitest 2> /tmp/traviscitest_out
   traviscitest_exit_code=${PIPESTATUS[0]}
