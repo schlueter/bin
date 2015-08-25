@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 
+control_c() {
+    kill $$
+    exit
+}
+
+trap control_c SIGINT
+
 while sleep 1; do
-  find playbooks -name "*.yml" | \
+  find playbooks -maxdepth 1 -name "*.yml" | \
   entr bash -c '
   function pass() {
     echo -e "\033[92m$@\033[0m";
@@ -21,7 +28,6 @@ while sleep 1; do
     echo -e "\033[93m$@\033[0m";
   }
 
-  notice running traviscitest
   traviscitest 2> /tmp/traviscitest_out
   traviscitest_exit_code=${PIPESTATUS[0]}
 
