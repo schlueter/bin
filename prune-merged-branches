@@ -1,0 +1,27 @@
+#!/usr/bin/env zsh
+
+function current_branch() {
+  local ref
+  ref=$(git symbolic-ref --quiet HEAD 2> /dev/null)
+  local ret=$?
+  if [[ $ret != 0 ]]; then
+    [[ $ret == 128 ]] && return  # no git repo.
+    ref=$(git rev-parse --short HEAD 2> /dev/null) || return
+  fi
+  echo ${ref#refs/heads/}
+}
+
+primary_branch=$(basename $(git rev-parse --symbolic-full-name origin))
+cur_branch=$(current_branch)
+
+if [[ "$cur_branch" != "$primary_branch" ]]; then
+  echo "cowardly refusing to prune branches from non-primary branch $cur_branch, primary is $primary_branch"
+  exit 1
+fi
+
+for merged_branch in $(git branch --merged); do
+  if [[ "$merged_branch" != "$cur_branch" && "$merged_branch" != '*' ]]; then
+    echo removing $merged_branch
+    git branch -d "$merged_branch"
+  fi
+done
