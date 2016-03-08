@@ -1,17 +1,26 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
+# pylint: disable=anomalous-backslash-in-string
+
+"""
+citest
+
+A runner which supports .travis.yml config files for testing.
+"""
+
+from __future__ import print_function
 
 import argparse
 import os
 import subprocess
 import time
 
-import yaml
-
 try:
     from termcolor import colored
 except ImportError:
-    def colored(string, color):
+    def colored(string, color=None):
+        """Support colored function when termcolor isn't available"""
+        assert color
         return string
 try:
     from watchdog.observers import Observer
@@ -19,25 +28,34 @@ try:
 except ImportError:
     print(colored('Failed to import watchdog, watch option will be unavailable.', 'red'))
 
+import yaml
 
-class CiRunner:
+
+WATCH_HELP = 'Watch the current directory for changes and run the ci tests on changes'
+DEFAULT_TEST_FILES = ['.travis.yml', 'citest.yml']
+TEST_FILE_HELP = 'File where ci tests are defined. Looks by default for {}.'.format(
+    ' or '.join(DEFAULT_TEST_FILES))
+
+class CiRunner(object):
+    """Runner class for testing."""
 
     @classmethod
-    def run_scripts(self, ci_test_file, exit_after_fail=False):
+    def run_scripts(cls, ci_test_file, exit_after_fail=False):
+        """Run the scripts defined in the ci_test_file"""
         rcs = []
 
-        with open(ci_test_file) as travisfile:
-            for script in yaml.load(travisfile)['script']:
+        with open(ci_test_file) as test_file:
+            for script in yaml.load(test_file)['script']:
                 print(colored('Running {}'.format(script), 'blue'))
 
                 try:
-                    rc = subprocess.call(script, shell=True)
+                    return_code = subprocess.call(script, shell=True)
                 except KeyboardInterrupt:
                     print(colored('Aborting, try again later ;)', 'blue'))
 
-                if rc != 0:
-                    rcs.append(rc)
-                    print(colored('Script {} failed with {}'.format(script, rc), 'red'))
+                if return_code != 0:
+                    rcs.append(return_code)
+                    print(colored('Script {} failed with {}'.format(script, return_code), 'red'))
 
         if rcs:
             print(colored('Scripts failed :(\n', 'red'))
@@ -49,17 +67,22 @@ class CiRunner:
 
 
     @classmethod
-    def watch_repo(self, ci_test_file):
+    def watch_repo(cls, ci_test_file):
+        """Watch the directory tree starting at the current
+           directory and run scripts if changes are made.
+        """
 
         class TravisCiRunnerEventHandler(RegexMatchingEventHandler):
+            """Event handler for watchdog"""
             def on_any_event(self, event):
                 print(u'Detected that {} was {}, running travis tests…\n'.format(
-                     event.src_path, event.event_type))
+                    event.src_path, event.event_type))
                 CiRunner.run_scripts(ci_test_file)
 
         path = os.path.realpath('.')
         print(colored('Watching {}'.format(path), 'green'))
-        event_handler = TravisCiRunnerEventHandler(ignore_regexes=['/\.git/'],
+        ignore_regexes = ['.*\.git.*']
+        event_handler = TravisCiRunnerEventHandler(ignore_regexes=ignore_regexes,
                                                    ignore_directories=True)
 
         observer = Observer()
@@ -73,23 +96,34 @@ class CiRunner:
             observer.stop()
         observer.join()
 
+def main():
+    """handle arguments"""
+    argument_parser = argparse.ArgumentParser(prog='citest')
+    argument_parser.add_argument('--watch',
+                                 action='store_true',
+                                 help=WATCH_HELP)
+    argument_parser.add_argument('-f',
+                                 '--test-file',
+                                 default=None,
+                                 help=TEST_FILE_HELP)
+    args = argument_parser.parse_args()
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(prog='citest')
-    parser.add_argument('--watch',
-                        action='store_true',
-                        help='Watch the current directory for changes and run the travis tests on changes')
-    parser.add_argument('-f',
-                        '--test-file',
-                        default='.travis.yml',
-                        help='File where ci tests are defined')
-    args = parser.parse_args()
+    test_files = [args.test_file] + DEFAULT_TEST_FILES
 
-    if not os.path.isfile(args.test_file):
-        parser.print_help()
+    test_file = None
+    for test_file in test_files:
+        if not test_file or not os.path.isfile(test_file):
+            continue
+        else:
+            break
+    else:
+        argument_parser.print_help()
         exit(1)
 
     if args.watch:
-        CiRunner.watch_repo(args.test_file)
+        CiRunner.watch_repo(test_file)
     else:
-        CiRunner.run_scripts(args.test_file, True)
+        CiRunner.run_scripts(test_file, True)
+
+if __name__ == '__main__':
+    main()
