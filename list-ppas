@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Can't use apt because Java thinks it owns it on OS X
+if apt-get --version 2> /dev/null
+then
+  grep -RoPish '(?<=ppa.launchpad.net/)[^/]+/[^/ ]+' /etc/apt \
+      | sort -u \
+      | sed 's/^/ppa:/'
+else
+  echo "The system must use apt for this script to work."
+  exit 2
+fi
