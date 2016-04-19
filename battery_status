@@ -1,11 +1,16 @@
 #!/usr/bin/env sh
 
-prev_color="$1"
-next_color="$2"
+if [ "$(pmset -g batt)" = "Now drawing from 'AC Power'" ]
+then
+    echo ''
+    exit
+fi
 
-output=''
+prev_color="$1"
+full_color="$2"
+sep="$3"
+
 charge=$(pmset -g batt | awk '/-InternalBattery-/ {sub(/%;/, "", $2); print $2}')
-status=$(pmset -g batt | awk '/-InternalBattery-/ {sub(/;/, "", $3); print $3}')
 
 case "$charge" in
   [0-9])
@@ -31,10 +36,10 @@ case "$charge" in
   9[0-9])
     bg=colour85;;
   100)
-    bg=$next_color;;
+    bg=$full_color;;
 esac
 
-fg=${fg:-black}
+status=$(pmset -g batt | awk '/-InternalBattery-/ {sub(/;/, "", $3); print $3}')
 
 case "$status" in
   "charging")
@@ -45,4 +50,6 @@ case "$status" in
     output="$charge%";;
 esac
 
-echo "#[fg=$bg,bg=$prev_color]#[fg=$fg,bg=$bg]$output#[fg=$next_color,bg=$bg]"
+fg=${fg:-black}
+
+echo "#[fg=$bg,bg=$prev_color]$sep#[fg=$fg,bg=$bg]$output"
