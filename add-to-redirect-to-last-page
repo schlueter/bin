@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+sed -i '' -E \
+    "s/(server.*);/\1\ $(echo "$1" | sed -E 's#(https?://|/.*$)*##g');/" \
+    /usr/local/etc/nginx/sites-available/redirect-to-last-page.conf
+
+sudo sed -i '' -E \
+    "s/(127\.0\.0\.1.*)/\1\ $(echo "$1" | sed -E 's#(https?://|/.*$)*##g')/" \
+    /etc/hosts
+
+for action in {un,}load
+do
+    sudo launchctl $action -w /Library/LaunchDaemons/homebrew.mxcl.nginx.plist
+done
+
+cat /usr/local/etc/nginx/sites-available/redirect-to-last-page.conf
+read -rp 'Would you like to back this up? ' confirm
+case "$confirm" in
+    [Yy]*)
+        cp /usr/local/etc/nginx/sites-available/redirect-to-last-page{,.bak}.conf
+        ;;
+esac
