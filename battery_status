@@ -1,13 +1,12 @@
 #!/usr/bin/env sh
 
-
 prev_color="$1"
 full_color="$2"
 sep="$3"
 
 [ "$(pmset -g batt)" = "Now drawing from 'AC Power'" ] && { echo "#[fg=${full_color}]${sep}"; exit; }
 
-charge=$(pmset -g batt | awk '/-InternalBattery-/ {sub(/%;/, "", $2); print $2}')
+charge=$(pmset -g batt | awk '/-InternalBattery-/ {sub(/%;/, "", $3); print $3}')
 
 case "$charge" in
   [0-9] ) bg=colour196  ;;
@@ -23,7 +22,7 @@ case "$charge" in
   100)    bg=$full_color;;
 esac
 
-status=$(pmset -g batt | awk '/-InternalBattery-/ {sub(/;/, "", $3); print $3}')
+status=$(pmset -g batt | awk '/-InternalBattery-/ {sub(/;/, "", $4); print $4}')
 
 case "$status" in
   "charging") output="$charge\xe2\x9a\xa1\xef\xb8\x8f ";;
