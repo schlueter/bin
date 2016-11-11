@@ -1,38 +1,42 @@
 #!/usr/bin/env sh
 
+prev_color="$1"
+full_color="$2"
+sep="$3"
+next_color="$4"
+
 case $(uname -a | awk '{print $1}') in
     Darwin)
-        prev_color="$1"
-        full_color="$2"
-        sep="$3"
-
         [ "$(pmset -g batt)" = "Now drawing from 'AC Power'" ] && { echo "#[fg=${full_color}]${sep}"; exit; }
 
         charge=$(pmset -g batt | awk '/-InternalBattery-/ {sub(/%;/, "", $3); print $3}')
-
-        case "$charge" in
-            [0-9] ) bg=colour196  ;;
-            1[0-9]) bg=colour202  ;;
-            2[0-9]) bg=colour214  ;;
-            3[0-9]) bg=colour220  ;;
-            4[0-9]) bg=colour45   ;;
-            5[0-9]) bg=colour63   ;;
-            6[0-9]) bg=colour20; fg=white;;
-            7[0-9]) bg=colour25; fg=white;;
-            8[0-9]) bg=colour35   ;;
-            9[0-9]) bg=colour85   ;;
-            100)    bg=$full_color;;
-        esac
-
         status=$(pmset -g batt | awk '/-InternalBattery-/ {sub(/;/, "", $4); print $4}')
-
-        case "$status" in
-            charging) output="$charge\xe2\x9a\xa1\xef\xb8\x8f ";;
-            charged)  output='\xe2\x9c\xa8 ';;
-            *)          output="$charge%";;
-        esac
-
-        fg=${fg:-black}
-        echo "#[fg=$bg,bg=$prev_color]$sep#[fg=$fg,bg=$bg]$output"
+        ;;
+    Linux)
+        charge=$(upower -i /org/freedesktop/UPower/devices/battery_BAT0 | awk '/percentage/{sub(/%/, "", $2); print $2}')
+        state=$(upower -i /org/freedesktop/UPower/devices/battery_BAT0 | awk '/state/{print $2}')
         ;;
 esac
+
+case "$charge" in
+    [0-9] ) bg=colour196  ;;
+    1[0-9]) bg=colour202  ;;
+    2[0-9]) bg=colour214  ;;
+    3[0-9]) bg=colour220  ;;
+    4[0-9]) bg=colour45   ;;
+    5[0-9]) bg=colour63   ;;
+    6[0-9]) bg=colour20; fg=white;;
+    7[0-9]) bg=colour25; fg=white;;
+    8[0-9]) bg=colour35   ;;
+    9[0-9]) bg=colour85   ;;
+    100)    bg=$full_color;;
+esac
+
+case "$status" in
+    charging) output="$charge\xe2\x9a\xa1\xef\xb8\x8f ";;
+    charged) output='\xe2\x9c\xa8 ';;
+    *) output="$charge%";;
+esac
+
+fg=${fg:-black}
+echo "#[fg=$bg,bg=$prev_color]$sep#[fg=$fg,bg=$bg]$output#[fg=$next_color,bg=$bg]$sep"
