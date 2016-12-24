@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Can't use apt because Java thinks it owns it on OS X
-if apt-get --version 2> /dev/null
+if apt-get --version &> /dev/null
 then
   grep -RoPish '(?<=ppa.launchpad.net/)[^/]+/[^/ ]+' /etc/apt \
       | sort -u \
