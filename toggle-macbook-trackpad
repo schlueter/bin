@@ -1,0 +1,5 @@
+#!/bin/sh
+if xinput list bcm5974 | grep "This device is disabled" > /dev/null
+then xinput --enable bcm5974
+else xinput --disable bcm5974
+fi
