@@ -1,27 +1,45 @@
 #!/usr/bin/env bash
 
+theme="${VOLUME_THEME:-Enlightenment-X}"
+size="${VOLUME_SIZE:-128}"
 sink_index=$(pacmd list-sinks | grep '*' | awk '/\\*/{ print $3}')
 
-if [[ -z "$1" ]]
-then
-    pacmd list-sinks | awk '/\*\ /{t=1};/^\t*volume:/{if (t==1) print $5}'
-else
-    case "$1" in
-        (--toggle-mute)
-            pactl set-sink-mute "${sink_index}" toggle
-            ;;
-        (--mute-state)
-            mute_state=$( \
-                pacmd list-sinks \
-                | awk '/\*\ /{t=1};/^\t*muted:/{if (t==1) print $2}'
-            )
-            case "$mute_state" in
-                (yes) echo muted;;
-                (no) echo unmuted;;
-            esac
-            ;;
-        (*)
-            pactl set-sink-volume "${sink_index}" "$1"
-            ;;
-    esac
-fi
+case "$1" in
+    (toggle-mute)
+        pactl set-sink-mute "${sink_index}" toggle
+        mute_state=$(pacmd list-sinks \
+          | awk '/\*\ /{t=1};/^\t*muted:/{if (t==1) print $2}')
+        case "${mute_state}" in
+            (yes) notify-send  muted \
+                    -i "/usr/share/icons/${theme}/status/${size}/audio-volume-muted.png" \
+                    -h string:x-canonical-private-synchronous:volume;;
+            (no) notify-send unmuted \
+                   -i "/usr/share/icons/${theme}/status/${size}/audio-volume.png" \
+                   -h string:x-canonical-private-synchronous:volume;;
+        esac
+        ;;
+    (*)
+        pactl set-sink-volume "${sink_index}" "$1"
+        volume=$(pacmd list-sinks | awk '/\*\ /{t=1};/^\t*volume:/{if (t==1) print $5}')
+        case "${volume}" in
+            (100%);&
+            (9[0-9]%) icon=audio-volume-high;;
+            ([3-8][0-9]%) icon=audio-volume-medium;;
+            ([1-2][0-9]%);&
+            ([1-9]%) icon=audio-volume-low;;
+            (0%) icon=audio-volume-muted;;
+        esac
+        notify-send "${volume}" \
+          -i "/usr/share/icons/${theme}/status/${size}/${icon}.png" \
+          -h string:x-canonical-private-synchronous:volume
+        mute_state=$(pacmd list-sinks \
+          | awk '/\*\ /{t=1};/^\t*muted:/{if (t==1) print $2}')
+        if [ "${mute_state}" == yes ]
+        then
+             sleep 0.3
+             notify-send  muted \
+               -i "/usr/share/icons/${theme}/status/${size}/audio-volume-muted.png" \
+               -h string:x-canonical-private-synchronous:volume
+        fi
+        ;;
+esac
