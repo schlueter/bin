@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+function notification () {
+    theme="${VOLUME_THEME:-Enlightenment-X}"
+    size="${VOLUME_SIZE:-128}"
+    notify-send  "$1" \
+      $( if [ -n "$2" ]
+         then
+             echo "-i /usr/share/icons/${theme}/status/${size}/$2.png"
+         fi) \
+      -h string:x-canonical-private-synchronous:volume
+}

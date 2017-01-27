@@ -1,5 +1,13 @@
-#!/bin/sh
-if xinput list bcm5974 | grep "This device is disabled" > /dev/null
-then xinput --enable bcm5974
-else xinput --disable bcm5974
+#!/usr/bin/env bash
+
+source notifier
+
+device="${1:-bcm5974}"
+if xinput list "${device}" | grep "This device is disabled" > /dev/null
+then
+    xinput --enable "${device}"
+    notification 'trackpad enabled'
+else
+    xinput --disable "${device}"
+    notification 'trackpad disabled'
 fi

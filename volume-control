@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+source notifier
+
 theme="${VOLUME_THEME:-Enlightenment-X}"
 size="${VOLUME_SIZE:-128}"
 sink_index=$(pacmd list-sinks | grep '*' | awk '/\\*/{ print $3; t=0}')
@@ -10,12 +12,8 @@ case "$1" in
         mute_state=$(pacmd list-sinks \
           | awk '/\*\ /{t=1};/^\t*muted:/{if (t==1) print $2; t=0}')
         case "${mute_state}" in
-            (yes) notify-send  muted \
-                    -i "/usr/share/icons/${theme}/status/${size}/audio-volume-muted.png" \
-                    -h string:x-canonical-private-synchronous:volume;;
-            (no) notify-send unmuted \
-                   -i "/usr/share/icons/${theme}/status/${size}/audio-volume.png" \
-                   -h string:x-canonical-private-synchronous:volume;;
+            (yes) notification muted audio-volume-muted;;
+            (no) notification unmuted audio-volume;;
         esac
         ;;
     (*)
@@ -29,17 +27,13 @@ case "$1" in
             ([1-9]%) icon=audio-volume-low;;
             (0%) icon=audio-volume-muted;;
         esac
-        notify-send "${volume}" \
-          -i "/usr/share/icons/${theme}/status/${size}/${icon}.png" \
-          -h string:x-canonical-private-synchronous:volume
+        notification "${volume}" "${icon}"
         mute_state=$(pacmd list-sinks \
           | awk '/\*\ /{t=1};/^\t*muted:/{if (t==1) print $2; t=0}')
         if [ "${mute_state}" == yes ]
         then
              sleep 0.3
-             notify-send  muted \
-               -i "/usr/share/icons/${theme}/status/${size}/audio-volume-muted.png" \
-               -h string:x-canonical-private-synchronous:volume
+             notification muted "${audio-volume-muted}"
         fi
         ;;
 esac
