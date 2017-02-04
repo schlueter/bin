@@ -7,28 +7,28 @@ size="${VOLUME_SIZE:-128}"
 sink_index=$(pacmd list-sinks | grep '*' | awk '/\\*/{ print $3; t=0}')
 
 case "$1" in
+    (previous) playerctl previous; notification previous;;
+    (next) playerctl next; notification next;;
+    (play-pause) playerctl play-pause; notification play-pause;;
     (toggle-mute)
         pactl set-sink-mute "${sink_index}" toggle
         mute_state=$(pacmd list-sinks \
           | awk '/\*\ /{t=1};/^\t*muted:/{if (t==1) print $2; t=0}')
         case "${mute_state}" in
-            (yes) notification muted audio-volume-muted;;
-            (no) notification unmuted audio-volume;;
+            (yes) notification muted 'audio-volume-muted';;
+            (no) notification unmuted 'audio-volume';;
         esac
         ;;
-    (previous) playerctl previous;;
-    (next) playerctl next;;
-    (play-pause) playerctl play-pause;;
     (*)
         pactl set-sink-volume "${sink_index}" "$1"
         volume=$(pacmd list-sinks | awk '/\*\ /{t=1};/^\t*volume:/{if (t==1) print $5; t=0}')
         case "${volume}" in
             (100%);&
-            (9[0-9]%) icon=audio-volume-high;;
-            ([3-8][0-9]%) icon=audio-volume-medium;;
+            (9[0-9]%) icon='audio-volume-high';;
+            ([3-8][0-9]%) icon='audio-volume-medium';;
             ([1-2][0-9]%);&
-            ([1-9]%) icon=audio-volume-low;;
-            (0%) icon=audio-volume-muted;;
+            ([1-9]%) icon='audio-volume-low';;
+            (0%) icon='audio-volume-muted';;
         esac
         notification "${volume}" "${icon}"
         mute_state=$(pacmd list-sinks \
