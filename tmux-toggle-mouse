@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+if [ "$TMUX_MOUSE" == on ]
+then
+    tmux set -g mouse off \; display 'Mouse: OFF'
+    TMUX_MOUSE=off
+else
+    tmux set -g mouse on \; display 'Mouse: ON'
+    TMUX_MOUSE=on
+fi
+
+export TMUX_MOUSE
