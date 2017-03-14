@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+
+#
+# Usage:
+#   $0 security_group_ports
+#   $0 current_image_starting_with <startswith| default('provisioning')>
+#
+
+set -e
+
+function docstring {
+    sed -n "s/\$0/$(basename "$0")/; s/^# //p" "$0"
+}
+
+function bad_command {
+    echo -e "\033[0;31mNo such command '$*'\033[0m" >&2
+    docstring
+    exit 1
+}
+
+function security_group_ports {
+    local id
+    for id in $(openstack security group list -f json | jq -r '.[] | .ID')
+    do
+        openstack security group show -f json "$id" \
+          | jq -r .project_id \
+          | xargs openstack project show -f json \
+          | jq '.description'
+        echo "Security Group ID: $id"
+        openstack security group rule list -f json \
+          | jq -r "$(cat <<EOF
+.
+| map(select(."Security Group" | contains("$id")))
+| map(select(."IP Protocol" != null))
+| .[]
+| ."IP Protocol" + " " + ."IP Range" + " " + ."Port Range"
+EOF
+)"
+    done
+}
+
+function current_image_starting_with {
+    local startswith
+    startswith="$*"
+    startswith="${startswith:-provisioning}"
+    openstack image list --long --format json \
+      | jq -r "$(cat <<EOF
+.
+| map(select(.Name | startswith("$startswith")))
+| map(select(.Tags | contains("current")))
+| first
+EOF
+)"
+}
+
+function main {
+    declare -a query
+    query=( "$@" )
+    case "${query[*]}" in
+        (security\ group\ ports) security_group_ports;;
+        (current\ image\ starting\ with*) current_image_starting_with "${query[@]:4}";;
+        (default) docstring;;
+        (*) bad_command "${query[*]}";;
+    esac
+}
+
+main "$@"
