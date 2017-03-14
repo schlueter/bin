@@ -2,8 +2,6 @@
 
 #
 # Usage:
-#   $0 security_group_ports
-#   $0 current_image_starting_with <startswith| default('provisioning')>
 #
 
 set -e
@@ -19,6 +17,7 @@ function bad_command {
 }
 
 function security_group_ports {
+#   $0 security group ports
     local id
     for id in $(openstack security group list -f json | jq -r '.[] | .ID')
     do
@@ -40,6 +39,7 @@ EOF
 }
 
 function current_image_starting_with {
+#   $0 current image starting with [<startswith=provisioning>]
     local startswith
     startswith="$*"
     startswith="${startswith:-provisioning}"
@@ -53,13 +53,24 @@ EOF
 )"
 }
 
+function remote_vnc {
+#   $0 remote vnc <jump host> [<remote_controller=control-01.nyc.rf29.net> [<local_port=6080>]
+    local jump remote_controller local_port
+    jump="${1:-r29-mm}"
+    remote_controller="${2:-control-01.nyc.rf29.net}"
+    local_port="${3:-6080}"
+    # shellcheck disable=SC2029
+    ssh -L "$local_port:$remote_controller:6080" "$jump" &
+}
+
 function main {
     declare -a query
     query=( "$@" )
     case "${query[*]}" in
         (security\ group\ ports) security_group_ports;;
         (current\ image\ starting\ with*) current_image_starting_with "${query[@]:4}";;
-        (default) docstring;;
+        (remote_vnc*) remote_vnc "${query[@]:2}";;
+        ('') docstring;;
         (*) bad_command "${query[*]}";;
     esac
 }
