@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 
-if [ "$TMUX_MOUSE" == on ]
+tmux_mouse_file="$HOME/.session/tmux_mouse"
+tmux_mouse_state="$(cat $tmux_mouse_file 2>/dev/null)"
+if [ "${tmux_mouse_state:-ON}" = ON ]
 then
-    tmux set -g mouse off \; display 'Mouse: OFF'
-    TMUX_MOUSE=off
+    tmux set mouse off
+    notifier "Tmux mouse off"
+    echo 'OFF' > "$tmux_mouse_file"
 else
-    tmux set -g mouse on \; display 'Mouse: ON'
-    TMUX_MOUSE=on
+    tmux set mouse on
+    notifier "Tmux mouse on"
+    echo 'ON' > "$tmux_mouse_file"
 fi
-
-export TMUX_MOUSE
