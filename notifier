@@ -1,12 +1,30 @@
 #!/usr/bin/env bash
 
-function notification () {
-    theme="${VOLUME_THEME:-Enlightenment-X}"
-    size="${VOLUME_SIZE:-128}"
-    notify-send  "$1" \
-      $( if [ -n "$2" ]
-         then
-             echo "-i /usr/share/icons/${theme}/status/${size}/$2.png"
-         fi) \
-      -h string:x-canonical-private-synchronous:volume
+function _notification {
+    summary="$1"
+    body="$2"
+    icon="$3"
+    theme="${4:-}"
+    size="${5:-}"
+    hint='string:x-canonical-private-synchronous:volume'
+
+    if [ -z "$theme" ] || [ -z "$size" ]
+    then
+        notification_icon="$icon"
+    else
+        notification_icon="/usr/share/icons/${theme}/status/${size}/${icon}.png"
+    fi
+
+    notify-send "$summary" "$body" --icon="$notification_icon" --hint="$hint"
 }
+
+function main {
+    summary="$1"
+    body="$2"
+    icon="$3"
+    theme="${NOTIFY_ICON_THEME:-}"
+    size="${NOTIFY_ICON_SIZE:-}"
+    _notification "$summary" "$body" "$icon" "$theme" "$size"
+}
+
+main "$@"
