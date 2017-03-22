@@ -1,0 +1,56 @@
+#!/bin/bash
+# This is a preprocessor for 'less'.  It is used when this environment
+# variable is set:   LESSOPEN="|lesspipe %s"
+
+function preprocess {
+    filename="$1"
+    case "$filename" in
+        (*.tar) tar tvvf "$filename" 2>/dev/null ;;
+        (*.tgz) tar tzvvf "$filename" 2>/dev/null ;;
+        (*.tar.bz2) bzip2 -cd "$filename" "$1" 2>/dev/null | tar tvvf - ;;
+        (*.tar.gz) tar tzvvf "$filename" 2>/dev/null ;;
+        (*.tar.Z) tar tzvvf "$filename" 2>/dev/null ;;
+        (*.tar.z) tar tzvvf "$filename" 2>/dev/null ;;
+        (*.bz2) bzip2 -dc "$filename"  2>/dev/null ;;
+        (*.Z) gzip -dc "$filename"  2>/dev/null ;;
+        (*.z) gzip -dc "$filename"  2>/dev/null ;;
+        (*.gz) gzip -dc "$filename"  2>/dev/null ;;
+        (*.zip) unzip -l "$filename" 2>/dev/null ;;
+        (*.1|*.2|*.3|*.4|*.5|*.6|*.7|*.8|*.9|*.n|*.man)
+            FILE="$(file -L "$filename")"
+            FILE="$(echo "$FILE" | cut -d ' ' -f 2)"
+            [ "$FILE" = 'troff' ] \
+            && groff -s -p -t -e -Tascii -mandoc "$filename"
+        ;;
+        (*.awk|*.groff|*.java|*.js|*.m4|*.php|*.pl|*.pm|*.pod|*.sh|\
+         *.ad[asb]|*.asm|*.inc|*.[ch]|*.[ch]pp|*.[ch]xx|*.cc|*.hh|\
+         *.lsp|*.l|*.pas|*.p|*.xml|*.xps|*.xsl|*.axp|*.ppd|*.pov|\
+         *.diff|*.patch|*.py|*.rb|*.sql|*.ebuild|*.eclass)
+            pygmentize -f 256 "$filename"
+        ;;
+
+        (.{,ba,z}sh*|.*profile)
+            pygmentize -f 256 -l sh "$filename"
+        ;;
+
+        (*)
+            if grep -E "#\!.*sh.*" "$filename" &> /dev/null
+            then
+                pygmentize -f 256 -l sh "$filename"
+            else
+                FILE="$(file -L "$filename")"
+                FILE1="$(echo $FILE | cut -d ' ' -f 2)"
+                FILE2="$(echo $FILE | cut -d ' ' -f 3)"
+                if [ "$FILE1" = 'Linux/i386' \
+                  -o "$FILE2" = 'Linux/i386' \
+                  -o "$FILE1" = 'ELF' \
+                  -o "$FILE2" = 'ELF' ]
+                then
+                    strings "$filename"
+                fi
+            fi
+        ;;
+    esac
+}
+
+preprocess "$1"
