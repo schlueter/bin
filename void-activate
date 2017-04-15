@@ -1,8 +1,8 @@
 #!/bin/sh
-NAME_STRING="${1:-Corsair_VOID_Wireless}"
-HEADSET_INDEX=$(pacmd list-sinks | awk '/name:.*Corsair_VOID_Wireless/{print a; exit}{a=$0}' | sed 's/.*index:\ //')
-pacmd set-default-sink "$HEADSET_INDEX" || echo Failed to set default >&2
+name_string="${1:-Corsair_VOID_Wireless}"
+headset_index=$(pacmd list-sinks | awk -v search_str="name:.*$name_string" '$0 ~ search_str {print a; exit}{a=$0}' | sed 's/.*index:\ //')
+pacmd set-default-sink "$headset_index" || echo Failed to set default >&2
 for i in $(pacmd list-sink-inputs | sed -n 's/.*index:\ //p')
 do
-   pacmd move-sink-input "$i" "$HEADSET_INDEX" || echo Failed to move "$i" >&2
+   pacmd move-sink-input "$i" "$headset_index" || echo Failed to move "$i" >&2
 done
