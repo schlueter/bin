@@ -1,86 +1,56 @@
 #!/usr/bin/env zsh
 
-((DEBUG)) && set -ex
+set -e
+((DEBUG)) && set -x
 
-on_exit () {
-    exit_code="$?"
-    case "$exit_code" in
-        23) notifier 'muted' '' 'audio-volume-muted'; exit 0 ;;
-        24) notify_volume; exit 0 ;;
-        0) exit;;
-        *)
-            notifier 'Unable to manage media' 'dialog-error'
-            exit "$exit_code"
-        ;;
-    esac
+function zshexit {
+    (($?)) && notifier 'Unable to manage media' 'dialog-error'
 }
 
-trap on_exit EXIT
-
-MUTED=23
-UNMUTED=24
-
-sink_index="$(pacmd list-sinks | awk '/\*/{print $3}')"
-
 function mute-state {
-    pacmd list-sinks \
-        | awk '/\*\ /{t=1};/^\t*muted:/{if (t==1) print $2; t=0}'
+    pacmd list-sinks | awk '/\*\ /{t=1};/^\t*muted:/{if (t==1) print $2; t=0}'
 }
 
 function volume {
-    pacmd list-sinks \
-        | awk '/\*\ /{t=1};/^\t*volume:/{if (t==1) print $5; t=0}'
+    pacmd list-sinks | awk '/\*\ /{t=1};/^\t*volume:/{if (t==1) print $5; t=0}'
 }
 
 function notify_volume {
+    local volume
     volume="$(volume)"
-    case "$volume" in
-        (100%);& (9[0-9]%) icon='audio-volume-high' ;;
-        ([3-8][0-9]%) icon='audio-volume-medium' ;;
-        ([1-2][0-9]%);& ([1-9]%) icon='audio-volume-low' ;;
-        (0%) icon='audio-volume-muted' ;;
+    case "$(mute-state)" in
+        (no)
+            case "$volume" in
+                ([3-8][0-9]%) icon='audio-volume-medium' ;;
+                (100%);& (9[0-9]%) icon='audio-volume-high' ;;
+                ([1-2][0-9]%);& ([1-9]%) icon='audio-volume-low' ;;
+                (0%) icon='audio-volume-muted' ;;
+            esac
+            notifier "$volume" '' "${icon}" ;;
+        (yes)
+            notifier 'muted' "$volume" 'audio-volume-muted' ;;
     esac
-    notifier "$volume" '' "${icon}"
 }
 
-function mute {
-    mute_state="$(mute-state)"
+function set-volume {
+    case "$1" in
+        (+*) target_volume="$(( ${$(volume)%%%} + ${${1/+}:-5} ))" ;;
+        (-*) target_volume="$(( ${$(volume)%%%} - ${${1/-}:-5} ))" ;;
+        (*) target_volume="${1:-${$(volume)%%%}}" ;;
+    esac
+    pacmd set-sink-volume "${sink_index}" $((target_volume * 655))
+    notify_volume
 }
 
+sink_index="$(pacmd list-sinks | awk '/\*/{print $3}')"
 case "$1" in
-    previous)
-        playerctl previous
-        notifier 'previous'
+    (next|previous|play-pause)
+        playerctl "$1"
+        notifier "$1"
         ;;
-    next)
-        playerctl next
-        notifier 'next'
-        ;;
-    play-pause)
-        playerctl play-pause
-        notifier 'play-pause'
-        ;;
-    toggle-mute)
-        case "$(mute-state)" in
-            yes)
-                pacmd set-sink-mute "${sink_index}" 0
-                exit "$UNMUTED"
-            ;;
-            no)
-                pacmd set-sink-mute "${sink_index}" 1
-                exit "$MUTED"
-            ;;
-        esac
-        ;;
-    +*) "$0" "$((${$(volume)%%%} + ${${1/+}:-5}))" ;;
-    -*) "$0" "$((${$(volume)%%%} - ${${1/-}:-5}))" ;;
-    *)
-        pacmd set-sink-volume "${sink_index}" $((${1:-${$(volume)%%%}} * 655))
+    (toggle-mute)
+        pacmd set-sink-mute "${sink_index}" "${${$(mute-state)/yes/0}/no/1}"
         notify_volume
-        if [[ "$(mute-state)" == yes ]]
-        then
-            sleep .3
-            exit "$MUTED"
-        fi
         ;;
+    (*) set-volume "$1" ;;
 esac
