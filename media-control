@@ -1,15 +1,6 @@
 #!/usr/bin/env bash
 
-if ((DEBUG))
-then
-    set -ex
-fi
-
-NOTIFY_ICON_THEME='Enlightenment-X'
-NOTIFY_ICON_SIZE='128'
-NUMBER_RE='^[0-9]+$'
-
-export NOTIFY_ICON_THEME NOTIFY_ICON_SIZE
+((DEBUG)) && set -ex
 
 premature_exit () {
     exit_code="$?"
@@ -21,6 +12,12 @@ premature_exit () {
 }
 
 trap premature_exit EXIT
+
+NOTIFY_ICON_THEME='Enlightenment-X'
+NOTIFY_ICON_SIZE='128'
+NUMBER_RE='^[0-9]+$'
+
+export NOTIFY_ICON_THEME NOTIFY_ICON_SIZE
 
 sink_index="$(pacmd list-sinks | awk '/\*/{print $3}')"
 
