@@ -25,6 +25,7 @@ function main {
     theme="${NOTIFY_ICON_THEME:-}"
     size="${NOTIFY_ICON_SIZE:-}"
     _notification "$summary" "$body" "$icon" "$theme" "$size"
+    echo "$summary" "$body" >&2
 }
 
 main "$@"
