@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
+set -e
+((DEBUG)) && set -x
+
 function _notification {
+    local summary body icon theme size hint
     summary="$1"
     body="$2"
     icon="$3"
@@ -19,6 +23,7 @@ function _notification {
 }
 
 function main {
+    local summary body icon theme size
     summary="$1"
     body="$2"
     icon="$3"
