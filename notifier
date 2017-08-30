@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 
+## $0
+##
+## A simplified interface to libnotify which creates a notification which
+## will stack with other similarly created (media) notifications.
+##
+## usage:
+##   notifier <summary> [<body>] [<icon name>] [<icon theme>] [<icon size>]
+
 set -e
 ((DEBUG)) && set -x
 
@@ -8,8 +16,8 @@ function _notification {
     summary="$1"
     body="$2"
     icon="$3"
-    theme="${4:-}"
-    size="${5:-}"
+    theme="${NOTIFY_ICON_THEME:-default}"
+    size="${NOTIFY_ICON_SIZE:-128}"
     hint='string:x-canonical-private-synchronous:volume'
 
     if [ -z "$theme" ] || [ -z "$size" ]
@@ -24,13 +32,12 @@ function _notification {
 
 function main {
     local summary body icon theme size
-    summary="$1"
-    body="$2"
-    icon="$3"
-    theme="${NOTIFY_ICON_THEME:-}"
-    size="${NOTIFY_ICON_SIZE:-}"
-    _notification "$summary" "$body" "$icon" "$theme" "$size"
-    echo "$summary" "$body" >&2
+    if [ "$*[$#]" = -h -o $# -eq 0 ]
+    then
+      sed "s/## \$0/## $(basename "$0")/" "$0" | awk '/^##/{gsub("## ?", ""); printf("%s\n", $0)}'
+      exit 1
+    fi
+    _notification "$@"
 }
 
 main "$@"
