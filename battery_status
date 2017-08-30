@@ -1,23 +1,48 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 prev_color="$1"
 full_color="$2"
 sep="$3"
 next_color="$4"
 
+darwin_plugged() {
+    if [ "$(pmset -g batt)" = "Now drawing from 'AC Power'" ]
+    then echo yes
+    else echo no
+    fi
+}
+linux_plugged() {
+    line_power=$(upower -i /org/freedesktop/UPower/devices/line_power_ADP1)
+    if grep 'online:.*yes' <<< "$line_power" >/dev/null
+    then echo yes
+    else echo no
+    fi
+}
+
 case $(uname -a | awk '{print $1}') in
     Darwin)
-        [ "$(pmset -g batt)" = "Now drawing from 'AC Power'" ] && { echo "#[fg=${full_color}]${sep}"; exit; }
+        plugged=$(darwin_plugged)
         charge=$(pmset -g batt | awk '/-InternalBattery-/ {sub(/%;/, "", $3); print $3}')
         ;;
     Linux)
+        plugged=$(linux_plugged)
         charge=$(upower -i /org/freedesktop/UPower/devices/battery_BAT0 | awk '/percentage/{sub(/%/, "", $2); print $2}')
         ;;
 esac
 
+if [ "$plugged" = 'yes' ]
+then echo "#[fg=${full_color}]${sep}"; exit;
+fi
+
 case "$charge" in
-    [0-9] ) bg=colour196  ;;
-    1[0-9]) bg=colour202  ;;
+    [0-9] )
+        bg=colour196
+        notify-send 'Battery low' "$charge%" -u critical
+    ;;
+    1[0-9])
+        bg=colour202
+        notify-send 'Battery low' "$charge%"
+    ;;
     2[0-9]) bg=colour214; fg=white;;
     3[0-9]) bg=colour220; fg=white;;
     4[0-9]) bg=colour45;  fg=white;;
