@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 
-tmux_status_file="$HOME/.session/tmux_status"
-tmux_status_state="$(cat $tmux_status_file 2>/dev/null)"
+tmux_status_file="$HOME/.config/tmux_status"
+tmux_status_state="$(cat "$tmux_status_file" 2>/dev/null)"
 tmux_status_state="${tmux_status_state:-ON}"
 if [ "$tmux_status_state" == ON ]
 then
     tmux set status off
+    tmux display 'Turning off status file'
     echo 'OFF' > "$tmux_status_file"
 else
     tmux set status on
+    tmux display 'Turning on status file'
     echo 'ON' > "$tmux_status_file"
 fi
