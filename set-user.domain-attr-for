@@ -1,0 +1,43 @@
+#!/usr/bin/env zsh
+
+set -e
+
+function get_option_for {
+    local OPTIONS PROMPT
+    PROMPT="$1"
+    OPTIONS=("${(@s/,/)2}")
+    print "$PROMPT" >&2
+    for ((i=1; i < $(( ${#OPTIONS[*]} + 1 )); i++)) do
+        print "${i}) ${OPTIONS[i]}" >&2
+    done
+    read "option_index?"
+    print "${OPTIONS[$option_index]}"
+}
+
+function apply_xattr_from_options {
+    local ATTR OPTION OPTIONS FILE
+    ATTR="$1"
+    OPTIONS="$2"
+    FILE="$3"
+    OPTION="$(get_option_for "Select $ATTR for $FILE:" "$OPTIONS")"
+    if ((DEBUG))
+    then
+        print "Would set $ATTR to $OPTION on $FILE"
+    else
+        attr -s "$ATTR" -V "$OPTION" "$FILE"
+    fi
+}
+
+function main {
+    local ATTR OPTIONS FILE FILELIST
+    ATTR="$1"
+    OPTIONS="$2"
+    shift 2
+    FILELIST=("$@")
+    for FILE in "${FILELIST[@]}"
+    do
+        apply_xattr_from_options "$ATTR" "$OPTIONS" "$FILE"
+    done
+}
+
+main "$@"
