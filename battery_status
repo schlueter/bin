@@ -31,7 +31,9 @@ case $(uname -a | awk '{print $1}') in
 esac
 
 if [ "$plugged" = 'yes' ]
-then echo "#[fg=${full_color}]${sep}"; exit;
+then
+    echo "#[fg=${full_color}]${sep}"
+    exit
 fi
 
 case "$charge" in
