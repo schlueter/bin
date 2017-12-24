@@ -4,14 +4,15 @@ prev_color="$1"
 next_color="$2"
 sep="$3"
 
+NOTIFICATION_MESSAGE='Battery low'
 
-darwin_plugged() {
+function darwin_plugged() {
     if [ "$(pmset -g batt)" = "Now drawing from 'AC Power'" ]
     then echo yes
     else echo no
     fi
 }
-linux_plugged() {
+function linux_plugged() {
     line_power=$(upower -i /org/freedesktop/UPower/devices/line_power_ADP1)
     if grep 'online:.*yes' <<< "$line_power" >/dev/null
     then echo yes
@@ -22,28 +23,30 @@ linux_plugged() {
 case $(uname -a | awk '{print $1}') in
     Darwin)
         plugged=$(darwin_plugged)
-        charge=$(pmset -g batt | awk '/-InternalBattery-/ {sub(/%;/, "", $3); print $3}')
+        charge=$(pmset -g batt \
+                | awk '/-InternalBattery-/ {sub(/%;/, "", $3); print $3}')
         ;;
     Linux)
         plugged=$(linux_plugged)
-        charge=$(upower -i /org/freedesktop/UPower/devices/battery_BAT0 | awk '/percentage/{sub(/%/, "", $2); print $2}')
+        charge=$(upower -i /org/freedesktop/UPower/devices/battery_BAT0 \
+                | awk '/percentage/{sub(/%/, "", $2); print $2}')
         ;;
 esac
 
 if [ "$plugged" = 'yes' ]
 then
-    echo "#[fg=${next_color}]${sep}"
+    printf "#[fg=${next_color}]${sep}"
     exit
 fi
 
 case "$charge" in
     [0-9] )
         bg=colour196
-        notify-send 'Battery low' "$charge%" -u critical
+        notify-send "$NOTIFICATION_MESSAGE" "$charge%" -u critical
     ;;
     1[0-9])
         bg=colour202
-        notify-send 'Battery low' "$charge%"
+        notify-send "$NOTIFICATION_MESSAGE" "$charge%"
     ;;
     2[0-9]) bg=colour214; fg=white;;
     3[0-9]) bg=colour220; fg=white;;
@@ -57,4 +60,7 @@ case "$charge" in
 esac
 
 fg=${fg:-black}
-echo "#[fg=$bg,bg=$prev_color]$sep#[fg=$fg,bg=$bg]$charge%#[fg=$next_color,bg=$bg]$sep"
+
+printf '#[fg=%s,bg=%s]%s' $bg $prev_color $sep	# left separator
+printf '#[fg=%s,bg=%s]%s%%' $fg $bg $charge	# percentage
+printf '#[fg=%s,bg=%s]%s' $next_color $bg $sep	# right separator
