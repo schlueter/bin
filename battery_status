@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 prev_color="$1"
-full_color="$2"
+next_color="$2"
 sep="$3"
-next_color="$4"
+
 
 darwin_plugged() {
     if [ "$(pmset -g batt)" = "Now drawing from 'AC Power'" ]
@@ -32,7 +32,7 @@ esac
 
 if [ "$plugged" = 'yes' ]
 then
-    echo "#[fg=${full_color}]${sep}"
+    echo "#[fg=${next_color}]${sep}"
     exit
 fi
 
@@ -53,7 +53,7 @@ case "$charge" in
     7[0-9]) bg=colour25;  fg=white;;
     8[0-9]) bg=colour35   ;;
     9[0-9]) bg=colour85   ;;
-    100)    bg=$full_color;;
+    100)    bg=$next_color;;
 esac
 
 fg=${fg:-black}
