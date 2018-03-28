@@ -50,7 +50,7 @@ case "$charge" in
     ;;
     2[0-9]) bg=colour214; fg=black;;
     3[0-9]) bg=colour220; fg=white;;
-    4[0-9]) bg=colour45;  fg=white;;
+    4[0-9]) bg=colour45;  fg=black;;
     5[0-9]) bg=colour63;  fg=white;;
     6[0-9]) bg=colour20;  fg=white;;
     7[0-9]) bg=colour25;  fg=white;;
