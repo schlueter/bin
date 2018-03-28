@@ -48,7 +48,7 @@ case "$charge" in
         bg=colour202
         notify-send "$NOTIFICATION_MESSAGE" "$charge%"
     ;;
-    2[0-9]) bg=colour214; fg=white;;
+    2[0-9]) bg=colour214; fg=black;;
     3[0-9]) bg=colour220; fg=white;;
     4[0-9]) bg=colour45;  fg=white;;
     5[0-9]) bg=colour63;  fg=white;;
