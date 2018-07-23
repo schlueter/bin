@@ -1,9 +1,8 @@
 #!/bin/sh
 git for-each-ref --sort=-committerdate refs | awk '
-    /refs\/.*(HEAD|master)/{next};
+    /refs\/.*(HEAD|master)$/{next};
     {
         gsub("refs/(remotes/origin|tags|heads)/", "");
-        if (!a[$0]++)
-            print $3
+        if (!a[$3]++) print $3
     }' \
 | head -"${1:-10}"
