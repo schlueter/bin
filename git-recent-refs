@@ -1,8 +1,16 @@
-#!/bin/sh
-git for-each-ref --sort=-committerdate refs | awk '
+#!/usr/bin/env bash
+# Usage: git-recent-refs [N]
+#     where N is the number of recent branches you want to be able to choose from, defaulting to 10 if not provided
+recent_branches=$(git for-each-ref --sort=-committerdate refs | awk '
     /refs\/.*(HEAD|master)$/{next};
     {
         gsub("refs/(remotes/origin|tags|heads)/", "");
         if (!a[$3]++) print $3
     }' \
-| head -"${1:-10}"
+| head -"${1:-10}")
+
+select branch in $recent_branches
+do
+    git checkout "$branch"
+    exit
+done
