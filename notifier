@@ -6,32 +6,23 @@
 ## will stack with other similarly created (media) notifications.
 ##
 ## usage:
-##   notifier <summary> [<body>] [<icon name>] [<icon theme>] [<icon size>]
+##   notifier <summary> [<body>] [<icon name>]
 
 set -e
 ((DEBUG)) && set -x
 
 function _notification {
-    local summary body icon theme size hint
+    local summary body icon
     summary="$1"
     body="$2"
     icon="$3"
-    theme="${NOTIFY_ICON_THEME:-default}"
-    size="${NOTIFY_ICON_SIZE:-128}"
-    hint='string:x-canonical-private-synchronous:volume'
 
-    if [ -z "$theme" ] || [ -z "$size" ]
-    then
-        notification_icon="$icon"
-    else
-        notification_icon="/usr/share/icons/${theme}/status/${size}/${icon}.png"
-    fi
-
-    notify-send "$summary" "$body" --icon="$notification_icon" --hint="$hint"
+    notify-send "$summary" "$body" \
+        "$([ -n "$icon" ] && echo  "--icon=$icon")" &
 }
 
 function main {
-    local summary body icon theme size
+    local summary body icon
     if [ "$*[$#]" = -h -o $# -eq 0 ]
     then
       sed "s/## \$0/## $(basename "$0")/" "$0" | awk '/^##/{gsub("## ?", ""); printf("%s\n", $0)}'
