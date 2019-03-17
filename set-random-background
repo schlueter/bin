@@ -1,0 +1,17 @@
+#!/bin/sh
+
+cycle_time="${1:-10}"
+
+backgrounds=($HOME/rclone/backgrounds/*)
+
+function set_random_background () {
+    local next_background
+    next_background="${backgrounds[$((RANDOM % ${#backgrounds[@]}))]}"
+    feh --bg-fill "${next_background}" >&2
+}
+
+while true
+do
+    set_random_background
+    sleep "$cycle_time"
+done
