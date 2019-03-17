@@ -7,6 +7,7 @@ backgrounds=($HOME/rclone/backgrounds/*)
 function set_random_background () {
     local next_background
     next_background="${backgrounds[$((RANDOM % ${#backgrounds[@]}))]}"
+    echo "Setting xbg to $next_background"
     feh --bg-fill "${next_background}" >&2
 }
 
