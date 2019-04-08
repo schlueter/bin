@@ -1,0 +1,11 @@
+#!/bin/sh
+
+lockfile="$TMPDIR/dont-lock-screen"
+if [ -f "$lockfile" ]
+then
+    notify-send 'Enabling screen lock'
+    rm "$lockfile"
+else
+    notify-send 'Disabling screen lock'
+    touch "$lockfile"
+fi
