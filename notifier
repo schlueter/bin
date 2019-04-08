@@ -12,23 +12,25 @@ set -e
 ((DEBUG)) && set -x
 
 function _notification {
-    local summary body icon
+    local summary body icon timeout
     summary="$1"
     body="$2"
     icon="$3"
+    # In milliseconds
+    timeout="$4"
 
     notify-send "$summary" "$body" \
-        "$([ -n "$icon" ] && echo  "--icon=$icon")" &
+        $([ -n "$icon" ] && echo  "--icon=$icon") \
+        $([ -n "$timeout" ] && echo "--expire-time=$timeout") &
 }
 
-function main {
-    local summary body icon
+function help {
     if [ "$*[$#]" = -h -o $# -eq 0 ]
     then
       sed "s/## \$0/## $(basename "$0")/" "$0" | awk '/^##/{gsub("## ?", ""); printf("%s\n", $0)}'
       exit 1
     fi
-    _notification "$@"
 }
 
-main "$@"
+help "$@"
+_notification $@
