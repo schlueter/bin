@@ -3,8 +3,9 @@
 set -e
 ((DEBUG)) && set -x
 
+
 function zshexit {
-    (($?)) && notifier 'Unable to manage media' 'dialog-error'
+    (($?)) && notify 'Unable to manage media' 'dialog-error'
 }
 
 function mute-state {
@@ -13,6 +14,17 @@ function mute-state {
 
 function volume {
     pacmd list-sinks | awk '/\*\ /{t=1};/^\t*volume:/{if (t==1) print $5; t=0}'
+}
+
+function notify {
+    echo "ZSH_ARGZERO=$ZSH_ARGZERO"
+    local notification_pid_file previous_notification_pid
+    notification_pid_file="$TMPDIR/notification.pid"
+    previous_notification_pid="$(<$notification_pid_file)" || true
+    echo $@
+    notify-send.sh -p $@ \
+        $( ((previous_notification_pid)) && echo "-r $previous_notification_pid")  \
+        >! "$notification_pid_file"
 }
 
 function notify_volume {
@@ -26,9 +38,9 @@ function notify_volume {
                 ([1-2][0-9]%);& ([1-9]%) icon='audio-volume-low' ;;
                 (0%) icon='audio-volume-muted' ;;
             esac
-            notifier "$volume" '' "status/${icon}" ;;
+            notify "$volume" --icon="status/${icon}" --expire-time=750;;
         (yes)
-            notifier 'muted' "$volume" 'status/audio-volume-muted' ;;
+            notify 'muted' "$volume" --icon='status/audio-volume-muted' 750 ;;
     esac
 }
 
@@ -46,7 +58,7 @@ sink_index="$(pacmd list-sinks | awk '/\*/{print $3}')"
 case "$1" in
     (next|previous|play-pause)
         playerctl "$1"
-        notifier "$1"
+        notify "$1"
         ;;
     (toggle-mute)
         pacmd set-sink-mute "${sink_index}" "${${$(mute-state)/yes/0}/no/1}"
