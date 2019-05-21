@@ -2,7 +2,7 @@
 
 cycle_time="${1:-10}"
 
-backgrounds=($HOME/rclone/backgrounds/*)
+backgrounds=($HOME/sync/backgrounds/*)
 
 function set_random_background () {
     local next_background
