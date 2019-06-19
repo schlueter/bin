@@ -5,18 +5,26 @@
 #
 # bash provides select and <<<
 
+# Get the available contexts
 contexts="$(kubectl config get-contexts)"
 
+# Print the header, indented to match the select output
 printf '   %s\n' "$(head -1 <<<"$contexts")"
+
+# Set IFS to newline so that select will split by line rather than by word
 IFS=$'\n'
+# Select from the available contexts, skipping the header line
 select context in $(tail -n+2 <<<"$contexts")
 do
+    # Check if the selected context is currently active
     if grep '^\*' <<<"$context"
     then
+        # Get the name from the 2nd field since the first will be '*'
         printf 'Already using context %s\n' "$(awk '{print $2}' <<<"$context")"
     else
-        new_context="$(awk '{print $1}' <<<"$context")"
-        kubectl config use-context "$new_context"
+        # The name is the first field, since the "current" column will be empty
+        kubectl config use-context "$(awk '{print $1}' <<<"$context")"
     fi
-    exit
+    # Because select is implemented as an infinite loop
+    break
 done
