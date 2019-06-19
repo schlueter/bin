@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Usage: kubernetes-choose-context
+#     Provides a menu like the output of `kubectl config get-contexts`
+#     from which to select a kubernetes context.
+#
+# bash provides select and <<<
+
+contexts="$(kubectl config get-contexts)"
+
+printf '   %s\n' "$(head -1 <<<"$contexts")"
+IFS=$'\n'
+select context in $(tail -n+2 <<<"$contexts")
+do
+    if grep '^\*' <<<"$context"
+    then
+        printf 'Already using context %s\n' "$(awk '{print $2}' <<<"$context")"
+    else
+        new_context="$(awk '{print $1}' <<<"$context")"
+        kubectl config use-context "$new_context"
+    fi
+    exit
+done
