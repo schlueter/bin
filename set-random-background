@@ -1,18 +1,37 @@
 #!/bin/sh
 
-cycle_time="${1:-10}"
 
-backgrounds=($HOME/sync/backgrounds/*)
+while (("$#"))
+do
+    case "$1" in
+        --cycle)
+            cycle_time=$2
+            shift
+            ;;
+    esac
+    shift
+done
 
-function set_random_background () {
-    local next_background
-    next_background="${backgrounds[$((RANDOM % ${#backgrounds[@]}))]}"
-    echo "Setting xbg to $next_background"
-    feh --no-fehbg --bg-fill "${next_background}" >&2
+cycle () {
+    while true
+    do
+        set_random_background
+        sleep "$cycle_time"
+    done
 }
 
-while true
-do
+set_random_background () {
+    local next_background backgrounds
+    backgrounds=($HOME/sync/backgrounds/*)
+    next_background="${backgrounds[$((RANDOM % ${#backgrounds[@]}))]}"
+    echo "Setting xbg to $next_background"
+    feh --bg-fill "${next_background}" >&2
+#    wal -ni "${next_background}" >&2
+}
+
+if [ "$cycle_time" ]
+then
+    cycle
+else
     set_random_background
-    sleep "$cycle_time"
-done
+fi
