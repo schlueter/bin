@@ -40,7 +40,9 @@ function notify_volume {
             esac
             notify "$volume" --icon="status/${icon}" --expire-time=750;;
         (yes)
-            notify 'muted' "$volume" --icon='status/audio-volume-muted' 750 ;;
+            notify "$volume" 'muted' \
+                --icon='status/audio-volume-muted' \
+                --expire-time=750 ;;
     esac
 }
 
