@@ -1,0 +1,4 @@
+#!/bin/sh
+
+docker ps --all | awk '/Exited/{print $1}' | xargs docker rm
+docker image ls | awk '/<none>/{print $3}' | xargs docker rmi
