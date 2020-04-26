@@ -1,10 +1,6 @@
 #!/bin/sh
 # shellcheck disable=SC2046
 
-prev_color="$1"
-next_color="$2"
-sep="$3"
-
 NOTIFICATION_MESSAGE='Battery low'
 
 notify() {
@@ -13,7 +9,15 @@ notify() {
     notify-send.sh -p "$@" \
         $( [ ! "$previous_notification_pid" -eq 0 ] \
             && echo -- "-r $previous_notification_pid")  \
-        > "$notification_pid_file"
+        | tee "$notification_pid_file"
+}
+
+clear_notifications() {
+    notification_pid_file="$TMPDIR/notification.pid"
+    [ -f "$notification_pid_file" ] && {
+        rm "$notification_pid_file"
+        killall dunst
+    }
 }
 
 darwin_plugged() {
@@ -29,6 +33,10 @@ linux_plugged() {
     else echo no
     fi
 }
+
+prev_color="$1"
+next_color="$2"
+sep="$3"
 
 case $(uname -a | awk '{print $1}') in
     Darwin)
@@ -46,12 +54,7 @@ esac
 if [ "$plugged" = 'yes' ]
 then
     printf "#[fg=%s]%s" "${next_color}" "${sep}"
-    notification_pid_file="$TMPDIR/notification.pid"
-    previous_notification_pid="$(cat "$notification_pid_file")" || true
-    notify-send.sh 'Charging' \
-        $( [ ! "$previous_notification_pid" -eq 0 ] \
-            && echo -- "--close=$previous_notification_pid")
-        # --icon='status/battery-level-10-symbolic' \
+    clear_notifications
     exit
 fi
 
