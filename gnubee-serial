@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+cat <<EOF
+Disconnect with ^]
+EOF
+sudo dterm /dev/ttyUSB0 57600
