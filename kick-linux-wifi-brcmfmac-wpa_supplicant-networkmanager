@@ -1,0 +1,5 @@
+#!/bin/sh
+sudo modprobe -r brcmfmac
+sudo modprobe brcmfmac
+sleep 0.7
+sudo systemctl restart wpa_supplicant NetworkManager
