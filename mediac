@@ -4,33 +4,31 @@ set -e
 ((DEBUG)) && set -x
 
 
-function zshexit {
+zshexit () {
     (($?)) && notify 'Unable to manage media' 'dialog-error'
 }
 
-function mute-state {
-    pacmd list-sinks | awk '/\*\ /{t=1};/^\t*muted:/{if (t==1) print $2; t=0}'
+current-mute-state () {
+    pacmd list-sinks | awk '/\* /{t=1};/^\t*muted:/{if (t==1) print $2; t=0}'
 }
 
-function volume {
-    pacmd list-sinks | awk '/\*\ /{t=1};/^\t*volume:/{if (t==1) print $5; t=0}'
+volume () {
+    pacmd list-sinks | awk '/\* /{t=1};/^\t*volume:/{if (t==1) print $5; t=0}'
 }
 
-function notify {
-    echo "ZSH_ARGZERO=$ZSH_ARGZERO"
+notify () {
     local notification_pid_file previous_notification_pid
     notification_pid_file="$TMPDIR/notification.pid"
     previous_notification_pid="$(<$notification_pid_file)" || true
-    echo $@
     notify-send.sh -p $@ \
         $( ((previous_notification_pid)) && echo "-r $previous_notification_pid")  \
         >! "$notification_pid_file"
 }
 
-function notify_volume {
+notify_volume () {
     local volume
     volume="$(volume)"
-    case "$(mute-state)" in
+    case "$(current-mute-state)" in
         (no)
             case "$volume" in
                 ([3-8][0-9]%) icon='audio-volume-medium' ;;
@@ -46,7 +44,7 @@ function notify_volume {
     esac
 }
 
-function set-volume {
+set-volume () {
     case "$1" in
         (+*) target_volume="$(( ${$(volume)%%%} + ${${1/+}:-5} ))" ;;
         (-*) target_volume="$(( ${$(volume)%%%} - ${${1/-}:-5} ))" ;;
@@ -56,15 +54,35 @@ function set-volume {
     notify_volume
 }
 
+usage () {
+    cat <<EOF >&2
+mediac [next|previous|play-pause|toggle-mute [yes|no]] | [<volume>|[+|-]<delta>]
+EOF
+}
+
 sink_index="$(pacmd list-sinks | awk '/\*/{print $3}')"
-case "$1" in
+arg="$1"
+arg2="$2"
+case "$arg" in
     (next|previous|play-pause)
-        playerctl "$1"
-        notify "$1"
+        playerctl "$arg"
+        notify "$arg"
         ;;
     (toggle-mute)
-        pacmd set-sink-mute "${sink_index}" "${${$(mute-state)/yes/0}/no/1}"
+        if [ "$arg2" = 'yes' ] || [ "$arg2" = 'no' ]
+        then
+            mute_state="$arg2"
+        else
+            mute_state="${${$(current-mute-state)/yes/0}/no/1}"
+        fi
+        pacmd set-sink-mute "${sink_index}" "$mute_state"
         notify_volume
         ;;
-    (*) set-volume "$1" ;;
+    (*)
+        if [ "$arg" = 0 ] || [ $((arg)) -ne 0 ]
+        then
+            set-volume "$arg"
+        else
+            usage
+        fi ;;
 esac
