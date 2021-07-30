@@ -47,7 +47,7 @@ case $(uname -a | awk '{print $1}') in
     Linux)
         plugged=$(linux_plugged)
         charge=$(upower -i /org/freedesktop/UPower/devices/battery_BAT0 \
-                | awk '/percentage/{sub(/%/, "", $2); print $2}')
+                | awk '/percentage/{sub(/%/, "", $2); printf "%i", $2}')
         ;;
 esac
 
