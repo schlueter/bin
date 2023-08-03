@@ -16,7 +16,6 @@ users to add to that group.
 import json
 import os
 import sys
-import time
 from pprint import pprint
 
 import requests
@@ -73,28 +72,6 @@ def get_okta_group_id(name: str) -> str:
     if not group_id:
         print(f"No group with name {name} found", file=sys.stderr)
     GROUP_IDS[name] = group_id
-    return group_id
-
-
-def create_okta_group(name: str) -> str:
-    data = dict(profile=dict(name=name,
-                             description="Imported from Harness.io"))
-    response = requests.post(
-        OKTA_API_URL + '/groups',
-        headers=OKTA_API_HEADERS,
-        data=json.dumps(data)
-    )
-
-    if response.status_code == 200:
-        group_id = response.json()['id']
-    elif response.status_code == 401:
-        raise UnauthorizedError
-    else:
-        print(f"Creating group {name} failed with status"
-              f"code {response.status_code}",
-              file=sys.stderr)
-        pprint(response.json(), stream=sys.stderr)
-        group_id = ''
     return group_id
 
 
