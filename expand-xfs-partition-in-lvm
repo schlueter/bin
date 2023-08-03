@@ -1,0 +1,8 @@
+#!/bin/sh
+VG="$1"
+LV="$2"
+LV_PATH="${3:-/$2}"
+lvresize -L+50G "/dev/$VG/$LV"
+# -d grows the fs to the maximum available space
+# -D may be used to grow to a specific block count
+xfs_growfs -d "$LV_PATH"
