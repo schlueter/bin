@@ -17,12 +17,12 @@ volume () {
 }
 
 notify () {
-    local notification_pid_file previous_notification_pid
-    notification_pid_file="$TMPDIR/notification.pid"
-    previous_notification_pid="$(<$notification_pid_file)" || true
+    local notification_id_file previous_notification_id
+    notification_id_file="$TMPDIR/notification.nid"
+    previous_notification_id="$(<$notification_id_file)" || true
     notify-send.sh -p $@ \
-        $( ((previous_notification_pid)) && echo "-r $previous_notification_pid")  \
-        >! "$notification_pid_file"
+        $( ((previous_notification_id)) && echo "-r $previous_notification_id")  \
+        >! "$notification_id_file"
 }
 
 notify_volume () {
