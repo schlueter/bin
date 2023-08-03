@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Usage: select-kitty-theme
+#   Select a theme for kitty from the dexpota/kitty-themes repository
+
+KITTY_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/kitty"
+# TODO does this even exist?
+KITTY_THEME_DIR="${KITTY_CONFIG_DIR}/kitty-themes/themes"
+KITTY_CONFIG_FILE="${KITTY_CONFIG_DIR}/kitty.conf"
+KITTY_THEME_LINK="${KITTY_CONFIG_DIR}/theme.conf"
+
+CURRENT_THEME="$(basename "$(readlink ~/.config/kitty/theme.conf)")"
+
+
+themes=()
+while IFS='' read -r line
+do
+    if [ "$CURRENT_THEME" = "$line" ]
+    then
+        line="* $line"
+    else
+        line="  $line"
+    fi
+    themes+=("${line%.conf}")
+done < <(ls "$KITTY_THEME_DIR")
+
+# This requires bash
+select theme in "${themes[@]}"
+do
+    kitty @ set-colors -a "${KITTY_THEME_DIR}/${theme// }.conf"
+    read -rp "Use theme as default? [y/N] (or quit) " response
+    case "$response" in
+        y|Y)
+            ln -sf "${KITTY_THEME_DIR}/${theme}.conf" "$KITTY_THEME_LINK"
+            if ! grep '^include ./theme.conf' "$KITTY_CONFIG_FILE"
+            then
+                read -rp "Theme file is not sourced in the kitty config. Would you like to add it? [y/N]" response
+                case "$response" in
+                    y|Y) echo 'include ./theme.conf' >> "$KITTY_CONFIG_FILE" ;;
+                    *) echo 'The theme may not persist.' >&2
+                esac
+            fi
+            exit
+        ;;
+        q|quit) exit ;;
+    esac
+done
