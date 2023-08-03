@@ -1,4 +1,18 @@
 #!/usr/bin/env python
+"""
+Configurable via environment variables:
+OKTA_API_SUBDOMAIN: an okta url subdomain like "example" for the url below
+OKTA_API_URL: a url like https://example.okta.com/api/1
+OKTA_API_KEY: a token from your Okta admin site at the path /admin/access/api/tokens
+
+If a subdomain is provided it takes priority over a provided url.
+
+This script then takes a minimum of two arguments:
+the first being the name of a group and all
+remaining arguments are usernames or emails of
+users to add to that group.
+"""
+
 import json
 import os
 import sys
@@ -7,8 +21,14 @@ from pprint import pprint
 
 import requests
 
+
+OKTA_API_SUBDOMAIN = os.environ.get('OKTA_API_SUBDOMAIN')
+if OKTA_API_SUBDOMAIN:
+    OKTA_API_URL = f"https://{OKTA_API_SUBDOMAIN}.okta.com"
+else:
+    OKTA_API_URL = os.environ.get('OKTA_API_URL')
+OKTA_API_URL = OKTA_API_URL + '/api/v1'
 OKTA_API_KEY = os.environ.get('OKTA_API_KEY')
-OKTA_API_URL = os.environ.get('OKTA_API_URL')
 OKTA_API_HEADERS = {
     'Accept': 'application/json',
     'Content-Type': 'application/json',
@@ -167,6 +187,9 @@ def main(arguments: list) -> None:
 
 
 if __name__ == '__main__':
+    if not (OKTA_API_URL or OKTA_API_KEY or len(sys.argv) < 2):
+        print(__doc__)
+        sys.exit(2)
     try:
         main(sys.argv[1:])
     except UnauthorizedError:
