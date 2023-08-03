@@ -17,12 +17,7 @@ volume () {
 }
 
 notify () {
-    local notification_id_file previous_notification_id
-    notification_id_file="$TMPDIR/notification.nid"
-    previous_notification_id="$(<$notification_id_file)" || true
-    notify-send.sh -p $@ \
-        $( ((previous_notification_id)) && echo "-r $previous_notification_id")  \
-        >! "$notification_id_file"
+    notify-send.sh -h string:x-dunst-stack-tag:mediac -p "$@"
 }
 
 notify_volume () {
@@ -31,16 +26,13 @@ notify_volume () {
     case "$(current-mute-state)" in
         (no)
             case "$volume" in
-                ([3-8][0-9]%) icon='audio-volume-medium' ;;
-                ([0-9][0-9][0-9]%);& (9[0-9]%) icon='audio-volume-high' ;;
-                ([1-2][0-9]%);& ([1-9]%) icon='audio-volume-low' ;;
-                (0%) icon='audio-volume-muted' ;;
+                ([3-8][0-9]%)                   level='medium' ;;
+                ([0-9][0-9][0-9]%);& (9[0-9]%)  level='high' ;;
+                ([1-2][0-9]%);& ([1-9]%);& (0%) level='low' ;;
             esac
-            notify "$volume" --icon="status/${icon}" --expire-time=750;;
-        (yes)
-            notify "$volume" 'muted' \
-                --icon='status/audio-volume-muted' \
-                --expire-time=750 ;;
+
+            notify "$volume" --icon="audio-volume-$level" --expire-time=600 ;;
+        (yes) notify 'muted' --icon='audio-volume-muted' --expire-time=600 ;;
     esac
 }
 
@@ -54,6 +46,57 @@ set-volume () {
     notify_volume
 }
 
+play-pause () {
+    case "$(playerctl status)" in
+        (Playing)
+            playerctl pause
+            notify --icon media-playback-pause-symbolic \
+                "Pause"
+            ;;
+        (Paused)
+            playerctl play
+            notify --icon media-playback-start-symbolic \
+                "Play"
+            ;;
+    esac
+}
+
+next-or-previous () {
+    case "$(playerctl status)" in
+        (Playing)
+            playerctl pause
+            notify --icon 'media-playback-pause-symbolic' \
+                "Pause"
+            ;;
+        (Paused)
+            playerctl play
+            notify --icon 'media-playback-start-symbolic' \
+                "Play"
+            ;;
+    esac
+}
+
+next () {
+    playerctl 'next'
+    notify --icon 'media-skip-forward' 'next'
+}
+
+previous () {
+    playerctl 'previous'
+    notify --icon 'media-skip-backward' 'previous'
+}
+
+toggle-mute () {
+        if [ "$arg2" = 'yes' ] || [ "$arg2" = 'no' ]
+        then
+            mute_state="$arg2"
+        else
+            mute_state="${${$(current-mute-state)/yes/0}/no/1}"
+        fi
+        pacmd set-sink-mute "${sink_index}" "$mute_state"
+        notify_volume
+}
+
 usage () {
     cat <<EOF >&2
 mediac [next|previous|play-pause|toggle-mute [yes|no]] | [<volume>|[+|-]<delta>]
@@ -64,20 +107,7 @@ sink_index="$(pacmd list-sinks | awk '/\*/{print $3}')"
 arg="$1"
 arg2="$2"
 case "$arg" in
-    (next|previous|play-pause)
-        playerctl "$arg"
-        notify "$arg"
-        ;;
-    (toggle-mute)
-        if [ "$arg2" = 'yes' ] || [ "$arg2" = 'no' ]
-        then
-            mute_state="$arg2"
-        else
-            mute_state="${${$(current-mute-state)/yes/0}/no/1}"
-        fi
-        pacmd set-sink-mute "${sink_index}" "$mute_state"
-        notify_volume
-        ;;
+    (next|previous|play-pause|toggle-mute) "$arg" ;;
     (*)
         if [ "$arg" = 0 ] || [ $((arg)) -ne 0 ]
         then

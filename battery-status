@@ -4,20 +4,11 @@
 NOTIFICATION_MESSAGE='Battery low'
 
 notify() {
-    notification_pid_file="$TMPDIR/notification.pid"
-    previous_notification_pid="$(cat "$notification_pid_file")" || true
-    notify-send.sh -p "$@" \
-        $( [ ! "$previous_notification_pid" -eq 0 ] \
-            && echo -- "-r $previous_notification_pid")  \
-        | tee "$notification_pid_file"
+    notify-send.sh -h string:x-dunst-stack-tag:battery-status -p "$@"
 }
 
 clear_notifications() {
-    notification_pid_file="$TMPDIR/notification.pid"
-    [ -f "$notification_pid_file" ] && {
-        rm "$notification_pid_file"
-        killall dunst
-    }
+    pkill dunst
 }
 
 darwin_plugged() {
@@ -62,7 +53,7 @@ case "$charge" in
     [0-9] )
         bg=colour196
         notify "$NOTIFICATION_MESSAGE" "$charge%" \
-            --icon='status/battery-level-10-symbolic' \
+            --icon='battery-caution' \
             --urgency critical \
             --expire-time=60000
     ;;
@@ -71,10 +62,10 @@ case "$charge" in
     3[0-9]) bg=colour220 ;;
     4[0-9]) bg=colour45  ;;
     5[0-9]) bg=colour63  ;;
-    6[0-9]) bg=colour20; fg=white;;
-    7[0-9]) bg=colour25; fg=white;;
-    8[0-9]) bg=colour35   ;;
-    9[0-9]) bg=colour85   ;;
+    6[0-9]) bg=colour20; fg=white ;;
+    7[0-9]) bg=colour25; fg=white ;;
+    8[0-9]) bg=colour35 ;;
+    9[0-9]) bg=colour85 ;;
     100)    bg=$next_color;;
 esac
 
