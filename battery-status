@@ -4,10 +4,12 @@
 NOTIFICATION_MESSAGE='Battery low'
 
 notify() {
+    # TODO this relies on a script available in Arch Linux' aur. Maybe it shouldn't?
     notify-send.sh -h string:x-dunst-stack-tag:battery-status -p "$@"
 }
 
 clear_notifications() {
+    # TODO other notification daemons also ought to work
     pkill dunst
 }
 
@@ -25,9 +27,29 @@ linux_plugged() {
     fi
 }
 
+linux_charge() {
+    if command -v upower >/dev/null && upower
+    then
+        upower -i /org/freedesktop/UPower/devices/battery_BAT0 \
+        | awk '/percentage/{sub(/%/, "", $2); printf "%i", $2}'
+    else
+        echo ""
+    fi
+}
+
+output() {
+
+    printf '#[fg=%s,bg=%s]%s' "$bg_color" "$prev_color" "$sep"	# left separator
+    test -n "$charge" || exit
+    printf '#[fg=%s,bg=%s]%s%%' "$fg_color" "$bg_color" "$charge"	# percentage
+    printf '#[fg=%s,bg=%s]%s' "$next_color" "$bg_color" "$sep"	# right separator
+}
+
 prev_color="$1"
 next_color="$2"
 sep="$3"
+fg_color=black
+bg_color="$next_color"
 
 case $(uname -a | awk '{print $1}') in
     Darwin)
@@ -37,8 +59,7 @@ case $(uname -a | awk '{print $1}') in
         ;;
     Linux)
         plugged=$(linux_plugged)
-        charge=$(upower -i /org/freedesktop/UPower/devices/battery_BAT0 \
-                | awk '/percentage/{sub(/%/, "", $2); printf "%i", $2}')
+        charge=$(linux_charge)
         ;;
 esac
 
@@ -50,27 +71,24 @@ then
 fi
 
 case "$charge" in
+    "" ) ;;
     [0-9] )
-        bg=colour196
+        bg_color=colour196
+        # This notification never goes away in xfce
         notify "$NOTIFICATION_MESSAGE" "$charge%" \
             --icon='battery-caution' \
             --urgency critical \
-            --expire-time=60000
+            --expire-time=60
     ;;
-    1[0-9]) bg=colour202 ;;
-    2[0-9]) bg=colour214 ;;
-    3[0-9]) bg=colour220 ;;
-    4[0-9]) bg=colour45  ;;
-    5[0-9]) bg=colour63  ;;
-    6[0-9]) bg=colour20; fg=white ;;
-    7[0-9]) bg=colour25; fg=white ;;
-    8[0-9]) bg=colour35 ;;
-    9[0-9]) bg=colour85 ;;
-    100)    bg=$next_color;;
+    1[0-9]) bg_color=colour202 ;;
+    2[0-9]) bg_color=colour214 ;;
+    3[0-9]) bg_color=colour220 ;;
+    4[0-9]) bg_color=colour45  ;;
+    5[0-9]) bg_color=colour63  ;;
+    6[0-9]) bg_color=colour20; fg_color=white ;;
+    7[0-9]) bg_color=colour25; fg_color=white ;;
+    8[0-9]) bg_color=colour35 ;;
+    9[0-9]) bg_color=colour85 ;;
+    100)    bg_color=$next_color;;
 esac
-
-fg=${fg:-black}
-
-printf '#[fg=%s,bg=%s]%s' "$bg" "$prev_color" "$sep"	# left separator
-printf '#[fg=%s,bg=%s]%s%%' "$fg" "$bg" "$charge"	# percentage
-printf '#[fg=%s,bg=%s]%s' "$next_color" "$bg" "$sep"	# right separator
+output
