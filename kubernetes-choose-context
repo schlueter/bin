@@ -6,7 +6,7 @@
 # bash provides select and <<<
 
 # Get the available contexts
-contexts="$(kubectl config get-contexts)"
+COLUMNS=$((COLUMNS-5)) contexts="$(kubectl config get-contexts)"
 
 # Print the header, indented to match the select output
 printf '   %s\n' "$(head -1 <<<"$contexts")"
