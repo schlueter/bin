@@ -13,7 +13,6 @@ remaining arguments are usernames or emails of
 users to add to that group.
 """
 
-import json
 import os
 import sys
 from pprint import pprint
