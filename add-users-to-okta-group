@@ -1,0 +1,216 @@
+#!/usr/bin/env python
+import json
+import os
+import sys
+import time
+from pprint import pprint
+
+import requests
+
+OKTA_GROUPS_FILE = 'all_okta_groups_with_users'
+
+
+OKTA_API_KEY = os.environ.get('OKTA_API_KEY')
+OKTA_API_URL = 'https://beachbody.okta.com/api/v1'
+OKTA_API_HEADERS = {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+    'Authorization': f"SSWS {OKTA_API_KEY}"
+}
+OKTA_GROUP_ALREADY_EXISTS_MESSAGE = \
+    'name: An object with this field already' \
+    'exists in the current organization'
+
+
+class UnauthorizedError(Exception):
+    pass
+
+
+def get_okta_group_id(name: str) -> str:
+    response = requests.get(
+        OKTA_API_URL + f"/groups?q={name}",
+        headers=OKTA_API_HEADERS
+    )
+    response_json = response.json()
+    group_id = ''
+    if response.status_code == 200:
+        if len(response_json) == 1:
+            group_id = response_json[0]['id']
+        else:
+            for group in response_json:
+                if group['profile']['name'] == name:
+                    group_id = group['id']
+    elif response.status_code == 401:
+        raise UnauthorizedError
+    if not group_id:
+        print(f"No group with name {name} found", file=sys.stderr)
+    return group_id
+
+
+def create_okta_group(name: str) -> str:
+    data = dict(profile=dict(name=name,
+                             description="Imported from Harness.io"))
+    response = requests.post(
+        OKTA_API_URL + '/groups',
+        headers=OKTA_API_HEADERS,
+        data=json.dumps(data)
+    )
+
+    if response.status_code == 200:
+        group_id = response.json()['id']
+    elif response.status_code == 401:
+        raise UnauthorizedError
+    else:
+        print(f"Creating group {name} failed with status"
+              f"code {response.status_code}",
+              file=sys.stderr)
+        pprint(response.json(), stream=sys.stderr)
+        group_id = ''
+    return group_id
+
+
+def add_member_to_okta_group(member: str, group_name: str) -> bool:
+    user_id = get_member_id(member)
+    group_id = get_okta_group_id(group_name)
+    if not user_id or not group_id:
+        return False
+
+    response = requests.put(
+        OKTA_API_URL + f"/groups/{group_id}/users/{user_id}",
+        headers=OKTA_API_HEADERS
+    )
+    if response.status_code == 204:
+        print(f"Added {member} to group {group_name}", file=sys.stderr)
+        return True
+    elif response.status_code == 401:
+        raise UnauthorizedError
+    else:
+        print(f"Adding {member} to group {group_name} did not return 204",
+              file=sys.stderr)
+        pprint(response, stream=sys.stderr)
+        return False
+
+
+def check_if_member_in_okta_group(member: str, group_name: str) -> bool:
+    group_id = get_okta_group_id(group_name)
+    if not group_id:
+        return False
+
+    response = requests.get(
+        OKTA_API_URL + f"/groups/{group_id}/users?limit=200",
+        headers=OKTA_API_HEADERS
+    )
+    if response.status_code != 200:
+        print('Failed to get group membership.', file=sys.stderr)
+        return False
+    members = response.json()
+
+    while 'rel="next"' in response.headers['Link']:
+        response = requests.get(
+            OKTA_API_URL + f"/groups/{group_id}/users?limit=200&after={members[-1]['id']}",
+            headers=OKTA_API_HEADERS
+        )
+        if response.status_code != 200:
+            print('Failed to get group membership.', file=sys.stderr)
+            return False
+        members += response.json()
+    return member in [m['profile']['login'] for m in members]
+
+
+def get_member_id(email: str):
+    response = requests.get(
+        OKTA_API_URL + f"/users?q={email}",
+        headers=OKTA_API_HEADERS
+    )
+    if response.status_code == 401:
+        raise UnauthorizedError
+    found_user_count = len(response.json())
+    user_id = ''
+    if found_user_count == 1:
+        user_id = response.json()[0]['id']
+    elif found_user_count < 1:
+        user, domain = email.split('@')
+        if user.endswith('-ext'):
+            print(f"No users found matching {email}", file=sys.stderr)
+        else:
+            ext_email = '@'.join([user + '-ext', domain])
+            ext_user_search_api_response = requests.get(
+                OKTA_API_URL + f"/users?q={ext_email}",
+                headers=OKTA_API_HEADERS
+            )
+            found_user_count = len(ext_user_search_api_response.json())
+            if found_user_count == 1:
+                user_id = ext_user_search_api_response.json()[0]['id']
+            else:
+                print(f"No users found matching {email} or {ext_email}",
+                      file=sys.stderr)
+    elif found_user_count > 1:
+        print(f"Found multiple users for {email}", file=sys.stderr)
+    return user_id
+
+
+def get_okta_groups():
+    response = requests.get(
+        OKTA_API_URL + '/groups',
+        headers=OKTA_API_HEADERS
+    )
+    if response.status_code == 401:
+        raise UnauthorizedError
+
+    raw_groups = response.json()
+    groups = [(group['id'], group['profile']['name']) for group in raw_groups]
+    group_info = {}
+    group_count = len(groups)
+    try:
+        print("")
+        for index, group_ident in enumerate(groups):
+            print(f"{index: >5}/{group_count}", file=sys.stderr, end='\r')
+            id, name = group_ident
+            group_info[name] = get_okta_group_users(id)
+        print("")
+    except Exception as err:
+        print(f"\nCaught error:\n{err}")
+    return group_info
+
+
+def get_okta_group_users(id: str):
+    group_users_api_url = OKTA_API_URL + f"/groups/{id}/users"
+    response = requests.get(
+        group_users_api_url,
+        headers=OKTA_API_HEADERS
+    )
+    if response.status_code == 401:
+        raise UnauthorizedError
+    if response.headers['x-rate-limit-remaining'] == 0:
+        now = time.strftime('%s')
+        reset_time = response.headers['x-rate-limit-reset']
+        print(f'Waiting until {reset_time} for rate limiting')
+        time.sleep(reset_time - now + 5)
+    users = []
+    for user_raw in response.json():
+        try:
+            user = {}
+            user['display_name'] = user_raw['profile'].get('displayName')
+            user['email'] = user_raw['profile'].get('email')
+            user['id'] = user_raw['id']
+            users.append(user)
+        except Exception:
+            print('\nError:')
+            pprint(user_raw)
+    return users
+
+
+def main(arguments: list):
+    group_name = arguments[0]
+    for user in arguments[1:]:
+        if not check_if_member_in_okta_group(user, group_name):
+            add_member_to_okta_group(user, group_name)
+        else:
+            print(f"{user} is already a member of {group_name}", file=sys.stderr)
+
+
+if __name__ == '__main__':
+    try:
+        main(sys.argv[1:])
+    except UnauthorizedError:
+        print('Request was unauthorized. Please check your Okta token and try again.', file=sys.stderr)
