@@ -1,15 +1,30 @@
 #!/usr/bin/env bash
 # Usage: select-kitty-theme
 #   Select a theme for kitty from the dexpota/kitty-themes repository
+set -e
 
 KITTY_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/kitty"
-# TODO does this even exist?
-KITTY_THEME_DIR="${KITTY_CONFIG_DIR}/kitty-themes/themes"
+KITTY_THEME_REPO="${KITTY_CONFIG_DIR}/kitty-themes"
+KITTY_THEME_DIR="${KITTY_THEME_REPO}/themes"
 KITTY_CONFIG_FILE="${KITTY_CONFIG_DIR}/kitty.conf"
 KITTY_THEME_LINK="${KITTY_CONFIG_DIR}/theme.conf"
 
 CURRENT_THEME="$(basename "$(readlink ~/.config/kitty/theme.conf)")"
 
+if ! [ -d "$KITTY_THEME_REPO" ]
+then
+    read -rp 'Theme directory not found, download? [Y/n] ' response
+    case "$response" in
+        y|Y) git clone https://github.com/dexpota/kitty-themes "$KITTY_THEME_REPO" ;;
+    esac
+fi
+
+(
+    cd "$KITTY_THEME_REPO" || (
+        echo 'Failed to cd to kitty theme directory.' >&2; exit 2
+    )
+    git pull
+)
 
 themes=()
 while IFS='' read -r line
@@ -26,12 +41,18 @@ done < <(ls "$KITTY_THEME_DIR")
 # This requires bash
 select theme in "${themes[@]}"
 do
-    kitty @ set-colors -a "${KITTY_THEME_DIR}/${theme// }.conf"
+    [[ "$theme" =~ ^\* ]] && {
+        echo "${theme/\* } is already the default theme." >&2
+        continue
+    }
+    theme="${theme// }"
+    echo "Updating current session to use the theme $theme." >&2
+    kitty @ set-colors -a "${KITTY_THEME_DIR}/${theme}.conf"
     read -rp "Use theme as default? [y/N] (or quit) " response
     case "$response" in
         y|Y)
             ln -sf "${KITTY_THEME_DIR}/${theme}.conf" "$KITTY_THEME_LINK"
-            if ! grep '^include ./theme.conf' "$KITTY_CONFIG_FILE"
+            if ! grep '^include ./theme.conf' "$KITTY_CONFIG_FILE" >/dev/null
             then
                 read -rp "Theme file is not sourced in the kitty config. Would you like to add it? [y/N]" response
                 case "$response" in
