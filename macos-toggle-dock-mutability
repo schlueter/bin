@@ -1,0 +1,14 @@
+#!/bin/sh
+
+set -ex
+
+current_state="$(defaults read com.apple.dock contents-immutable)"
+
+if ((current_state))
+then
+    defaults write com.apple.dock contents-immutable -bool false
+else
+    defaults write com.apple.dock contents-immutable -bool true
+fi
+
+killall Dock
