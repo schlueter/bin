@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+log () {
+    printf '%s %s\n' "$(date -R)" "$*" >> ~/.logs/note.log
+}
+
+named_note () {
+    vim "$XDG_CONFIG_HOME/notes/$1"
+    (
+        set -e
+        exec > >(while read -r l; do log "$l"; done) 2>&1
+        if ! cd "$XDG_CONFIG_HOME"/notes
+        then
+            log "Issue moving to notes directory, cannot continue."
+        fi
+        if [ -L "$1" ]
+        then
+            git add "$(readlink $1)"
+        else
+            git add $1
+        fi
+        git commit -m "Updated $1 note"
+    )
+}
+
+if [ "$#" -eq 0 ]
+then
+    named_note 'default'
+elif [ "$#" -eq 1 ]
+then
+    named_note "$1"
+fi
+
