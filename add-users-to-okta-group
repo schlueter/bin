@@ -7,11 +7,8 @@ from pprint import pprint
 
 import requests
 
-OKTA_GROUPS_FILE = 'all_okta_groups_with_users'
-
-
 OKTA_API_KEY = os.environ.get('OKTA_API_KEY')
-OKTA_API_URL = 'https://beachbody.okta.com/api/v1'
+OKTA_API_URL = os.environ.get('OKTA_API_URL')
 OKTA_API_HEADERS = {
     'Accept': 'application/json',
     'Content-Type': 'application/json',
