@@ -114,7 +114,7 @@ def check_if_member_in_okta_group(member: str, group_name: str) -> bool:
     return member in [m['profile']['login'] for m in members]
 
 
-def get_member_id(email: str):
+def get_member_id(email: str) -> str:
     response = requests.get(
         OKTA_API_URL + f"/users?q={email}",
         headers=OKTA_API_HEADERS
@@ -146,7 +146,7 @@ def get_member_id(email: str):
     return user_id
 
 
-def get_okta_groups():
+def get_okta_groups() -> dict:
     response = requests.get(
         OKTA_API_URL + '/groups',
         headers=OKTA_API_HEADERS
@@ -170,7 +170,7 @@ def get_okta_groups():
     return group_info
 
 
-def get_okta_group_users(id: str):
+def get_okta_group_users(id: str) -> list:
     group_users_api_url = OKTA_API_URL + f"/groups/{id}/users"
     response = requests.get(
         group_users_api_url,
@@ -197,7 +197,7 @@ def get_okta_group_users(id: str):
     return users
 
 
-def main(arguments: list):
+def main(arguments: list) -> None:
     group_name = arguments[0]
     for user in arguments[1:]:
         if not check_if_member_in_okta_group(user, group_name):
