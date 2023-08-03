@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+git_annotated_history () {
+    read -ra files <<<"$@"
+    if ! [ "${files[@]}" ]
+    then
+        files=(
+            $(
+                find -s . -mindepth 1 -maxdepth 1 \
+                -not \( -wholename '*.git*' -type d \)
+              )
+        )
+    fi
+    filename_width=0
+    for filename in "${files[@]}"
+    do
+        filename="${filename/.\/}"
+        if [ "${#filename}" -gt "$filename_width" ]
+        then
+            filename_width="$((${#filename}+1))"
+        fi
+    done
+
+    for filename in "${files[@]}"
+    do
+        filename="${filename/.\/}"
+        info="$(git log -n 1 --relative-date --pretty=reference "$filename")"
+        if ! [ "$info" ]
+        then
+            if grep "$filename" .gitignore >/dev/null 2>&1
+            then
+                info='Ignored'
+            else
+                info='Untracked'
+            fi
+        fi
+        printf "%-$((filename_width))s%s\n" "$filename" "$info"
+    done
+}
+
+git_annotated_history "$*"
