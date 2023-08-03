@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+BUCKET_NAME="$1"
+
+epoch_of_s3_timestamp () {
+    date -jf '%Y-%m-%d %H:%M:%S' "$1" +%s
+}
+
+epoch_30_days_ago () {
+    echo $(($(date +%s)-$((30*24*60*60))))
+}
+
+get_all_files_in_bucket () {
+    aws s3 --recursive ls "s3://$1"
+}
+
+get_all_files_in_bucket "$BUCKET_NAME" \
+    | awk '{print $NF}' \
+    | xargs -n 1 -P 100 -I@ aws s3 rm "s3://$BUCKET_NAME/@"
+
+aws s3api delete-bucket --bucket "$BUCKET_NAME"

@@ -1,0 +1,2 @@
+#!/bin/sh
+/usr/local/bin/tmux attach -t default || tmux new -s default
