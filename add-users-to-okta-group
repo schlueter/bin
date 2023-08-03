@@ -23,11 +23,18 @@ class UnauthorizedError(Exception):
     pass
 
 
-def get_okta_group_id(name: str) -> str:
+def okta_api_get_request(path: str) -> requests.models.Response:
     response = requests.get(
-        OKTA_API_URL + f"/groups?q={name}",
+        OKTA_API_URL + path,
         headers=OKTA_API_HEADERS
     )
+    if response.status_code == 401:
+        raise UnauthorizedError
+    return response
+
+
+def get_okta_group_id(name: str) -> str:
+    response = okta_api_get_request(f"/groups?q={name}")
     response_json = response.json()
     group_id = ''
     if response.status_code == 200:
@@ -37,8 +44,6 @@ def get_okta_group_id(name: str) -> str:
             for group in response_json:
                 if group['profile']['name'] == name:
                     group_id = group['id']
-    elif response.status_code == 401:
-        raise UnauthorizedError
     if not group_id:
         print(f"No group with name {name} found", file=sys.stderr)
     return group_id
@@ -92,21 +97,14 @@ def check_if_member_in_okta_group(member: str, group_name: str) -> bool:
     group_id = get_okta_group_id(group_name)
     if not group_id:
         return False
-
-    response = requests.get(
-        OKTA_API_URL + f"/groups/{group_id}/users?limit=200",
-        headers=OKTA_API_HEADERS
-    )
+    response = okta_api_get_request(f"/groups/{group_id}/users?limit=200")
     if response.status_code != 200:
         print('Failed to get group membership.', file=sys.stderr)
         return False
     members = response.json()
 
     while 'rel="next"' in response.headers['Link']:
-        response = requests.get(
-            OKTA_API_URL + f"/groups/{group_id}/users?limit=200&after={members[-1]['id']}",
-            headers=OKTA_API_HEADERS
-        )
+        response = okta_api_get_request(f"/groups/{group_id}/users?limit=200&after={members[-1]['id']}")
         if response.status_code != 200:
             print('Failed to get group membership.', file=sys.stderr)
             return False
@@ -115,12 +113,7 @@ def check_if_member_in_okta_group(member: str, group_name: str) -> bool:
 
 
 def get_member_id(email: str) -> str:
-    response = requests.get(
-        OKTA_API_URL + f"/users?q={email}",
-        headers=OKTA_API_HEADERS
-    )
-    if response.status_code == 401:
-        raise UnauthorizedError
+    response = okta_api_get_request(f"/users?q={email}")
     found_user_count = len(response.json())
     user_id = ''
     if found_user_count == 1:
@@ -131,10 +124,7 @@ def get_member_id(email: str) -> str:
             print(f"No users found matching {email}", file=sys.stderr)
         else:
             ext_email = '@'.join([user + '-ext', domain])
-            ext_user_search_api_response = requests.get(
-                OKTA_API_URL + f"/users?q={ext_email}",
-                headers=OKTA_API_HEADERS
-            )
+            ext_user_search_api_response = okta_api_get_request(f"/users?q={ext_email}")
             found_user_count = len(ext_user_search_api_response.json())
             if found_user_count == 1:
                 user_id = ext_user_search_api_response.json()[0]['id']
@@ -146,38 +136,8 @@ def get_member_id(email: str) -> str:
     return user_id
 
 
-def get_okta_groups() -> dict:
-    response = requests.get(
-        OKTA_API_URL + '/groups',
-        headers=OKTA_API_HEADERS
-    )
-    if response.status_code == 401:
-        raise UnauthorizedError
-
-    raw_groups = response.json()
-    groups = [(group['id'], group['profile']['name']) for group in raw_groups]
-    group_info = {}
-    group_count = len(groups)
-    try:
-        print("")
-        for index, group_ident in enumerate(groups):
-            print(f"{index: >5}/{group_count}", file=sys.stderr, end='\r')
-            id, name = group_ident
-            group_info[name] = get_okta_group_users(id)
-        print("")
-    except Exception as err:
-        print(f"\nCaught error:\n{err}")
-    return group_info
-
-
 def get_okta_group_users(id: str) -> list:
-    group_users_api_url = OKTA_API_URL + f"/groups/{id}/users"
-    response = requests.get(
-        group_users_api_url,
-        headers=OKTA_API_HEADERS
-    )
-    if response.status_code == 401:
-        raise UnauthorizedError
+    response = okta_api_get_request(f"/groups/{id}/users")
     if response.headers['x-rate-limit-remaining'] == 0:
         now = time.strftime('%s')
         reset_time = response.headers['x-rate-limit-reset']
