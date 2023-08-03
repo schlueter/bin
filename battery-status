@@ -21,7 +21,7 @@ clear_notifications() {
 }
 
 darwin_plugged() {
-    if [ "$(pmset -g batt)" = "Now drawing from 'AC Power'" ]
+    if [ "$(pmset -g batt | head -1)" = "Now drawing from 'AC Power'" ]
     then echo yes
     else echo no
     fi
