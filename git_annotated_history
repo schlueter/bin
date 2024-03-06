@@ -3,11 +3,9 @@ git_annotated_history () {
     read -ra files <<<"$@"
     if ! [ "${files[@]}" ]
     then
-        files=(
-            $(
-                find -s . -mindepth 1 -maxdepth 1 \
-                -not \( -wholename '*.git*' -type d \)
-              )
+        mapfile -t files < <(
+            find -s . -mindepth 1 -maxdepth 1 \
+            -not \( -wholename '*.git*' -type d \)
         )
     fi
     filename_width=0
