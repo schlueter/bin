@@ -1,0 +1,5 @@
+#!/bin/sh
+# The active command or
+gpg-connect-agent reloadagent /bye
+#gpgconf --kill gpg-agent
+

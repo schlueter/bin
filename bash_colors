@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#!/bin/bash
+for((i=16; i<256; i++)); do
+    printf "\e[48;5;${i}m%03d\e[0m" "$i";
+    [ ! $((($i - 15) % 6)) -eq 0 ] && printf ' ' || printf '\n'
+done

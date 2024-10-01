@@ -1,0 +1,5 @@
+#!/bin/sh
+echo "enter alternate code from application's QR code otp setup as secret"
+pass otp insert --echo --secret --issuer "${1:-new-otp}"
+echo "Initial otp code:"
+pass otp "${1:-new-otp}"

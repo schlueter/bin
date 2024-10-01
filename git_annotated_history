@@ -21,7 +21,14 @@ git_annotated_history () {
     for filename in "${files[@]}"
     do
         filename="${filename/.\/}"
-        info="$(git log -n 1 --relative-date --pretty=reference "$filename")"
+        info="$(
+          git log \
+            --max-count=1 \
+            --decorate=short \
+            --date=short \
+            --pretty=format:'%h %ad %an %s %d' \
+            "$filename"
+        )"
         if ! [ "$info" ]
         then
             if grep "$filename" .gitignore >/dev/null 2>&1

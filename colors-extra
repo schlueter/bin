@@ -1,0 +1,12 @@
+colors () {
+    for i in {0..255}
+    do
+        for j in {0..10}
+        do
+            for k in {0..10}
+            do
+                printf "\x1b[${k};${j};${i}m${i} ${j} ${k}\n"
+            done
+        done
+    done
+}; colors

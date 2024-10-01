@@ -1,0 +1,1 @@
+<dependabot-alerts jq '.[]|select(.state == "open")|[.security_advisory.published_at, .security_advisory.severity, .dependency.package.name, .dependency.manifest_path, .security_advisory.cve_id, .security_advisory.ghsa_id, .security_advisory.vulnerabilities[].first_patched_version.identifier]|@tsv' -r
