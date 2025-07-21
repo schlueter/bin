@@ -3,16 +3,20 @@
 #     where N is the number of recent branches you want to be able to choose from, defaulting to 10 if not provided
 
 # bash is required for select
-
-recent_branches=$(git for-each-ref --sort=-committerdate refs | awk '
+all_recent_branches=$(git for-each-ref --sort=-committerdate refs | awk '
     /refs\/.*(HEAD|master)$/{next};
     {
         gsub("refs/(remotes/[^/]+|tags|heads)/", "");
         if (!a[$3]++) print $3
-    }' \
-| head -"${1:-10}")
+    }')
 
-select branch in $recent_branches
+if (($1)) || [[ -z "$1" ]]; then
+    select_branches=$(echo "$all_recent_branches" | head -n "${1:-10}")
+else
+    select_branches=$(echo "$all_recent_branches" | grep -i "$1")
+fi
+
+select branch in $select_branches
 do
     git checkout "$branch"
     exit

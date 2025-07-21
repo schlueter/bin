@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 git_annotated_history () {
     read -ra files <<<"$@"
-    if ! [ "${files[@]}" ]
+    if ! [ "${#files[@]}" ]
     then
         mapfile -t files < <(
             find -s . -mindepth 1 -maxdepth 1 \
