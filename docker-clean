@@ -1,4 +1,33 @@
 #!/bin/sh
 
-docker ps --all | awk '/Exited|Created/{print $1}' | xargs docker rm
-docker image ls | awk '/<none>/{print $3}' | xargs docker rmi
+if docker ps --all --format table | grep -q 'Exited\|Created'; then
+    echo "Removing stopped containers..."
+    docker ps --all --format table | awk '/Exited|Created/{print $1}' | xargs docker rm
+else
+    echo "No stopped containers to remove."
+fi
+
+if docker image ls --format table | grep -q '<none>'; then
+    echo "Removing dangling images..."
+    docker image ls --format table \
+        | awk '/<none>/{print $3}' \
+        | xargs docker rmi
+fi
+
+if docker volume ls --format table | grep -q 'local'; then
+    echo "Removing dangling volumes..."
+    docker volume ls --format table \
+        | awk '/local/{print $2}' \
+        | xargs docker volume rm
+else
+    echo "No dangling volumes to remove."
+fi
+
+if docker network ls --format table | grep -q 'bridge\|host\|none'; then
+    echo "Removing dangling networks..."
+    docker network ls --format table \
+        | awk '/bridge|host|none/{print $1}' \
+        | xargs docker network rm
+else
+    echo "No dangling networks to remove."
+fi
