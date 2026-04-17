@@ -1,5 +1,11 @@
 #!/bin/sh
 
+echo 'Running `docker system prune`'
+docker system prune
+exit $?
+
+# This script is no longer necessary
+
 if docker ps --all --format table | grep -q 'Exited\|Created'; then
     echo "Removing stopped containers..."
     docker ps --all --format table | awk '/Exited|Created/{print $1}' | xargs docker rm
