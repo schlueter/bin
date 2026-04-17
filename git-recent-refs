@@ -1,23 +1,39 @@
 #!/usr/bin/env bash
-# Usage: git-recent-refs [N]
-#     where N is the number of recent branches you want to be able to choose from, defaulting to 10 if not provided
+# Usage: git-recent-refs [N|pattern]
 
-# bash is required for select
-all_recent_branches=$(git for-each-ref --sort=-committerdate refs | awk '
-    /refs\/.*(HEAD|master)$/{next};
-    {
-        gsub("refs/(remotes/[^/]+|tags|heads)/", "");
-        if (!a[$3]++) print $3
-    }')
+# Build array of recent branches
+mapfile -t all_recent_branches < <(
+    git for-each-ref --sort=-committerdate refs | awk '
+        /refs\/.*(HEAD|master)$/{next};
+        {
+            gsub("refs/(remotes/[^/]+|tags|heads)/", "");
+            if (!a[$3]++) print $3
+        }'
+)
 
-if (($1)) || [[ -z "$1" ]]; then
-    select_branches=$(echo "$all_recent_branches" | head -n "${1:-10}")
+# Decide how to filter
+if [[ -z "$1" || "$1" =~ ^[0-9]+$ ]]; then
+    limit=${1:-10}
+    select_branches=("${all_recent_branches[@]:0:limit}")
 else
-    select_branches=$(echo "$all_recent_branches" | grep -i "$1")
+    select_branches=()
+    for b in "${all_recent_branches[@]}"; do
+        if [[ "$b" =~ $1 ]]; then
+            select_branches+=("$b")
+        fi
+    done
 fi
 
-select branch in $select_branches
-do
-    git checkout "$branch"
-    exit
+# Handle no matches
+if ((${#select_branches[@]} == 0)); then
+    echo "No matching branches found"
+    exit 1
+fi
+
+# Selection menu
+select branch in "${select_branches[@]}"; do
+    if [[ -n "$branch" ]]; then
+        git checkout "$branch"
+        break
+    fi
 done
