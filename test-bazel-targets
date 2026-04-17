@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+
+red=$(tput setaf 9)
+blue=$(tput setaf 4)
+green=$(tput setaf 10)
+reset=$(tput sgr0)
+
+summary=()
+for t in "$@"
+do
+    echo "Testing ${t}"
+    if ! build="$(docker exec dewr bazel build //"${t}":all 2>&1)"
+    then
+        echo -e "${red}Build failed for ${t}${reset}"
+        echo "${build}"
+        summary+=("${red}${t} failed to build${reset}")
+    else
+        echo -e "${green}Build succeeded for ${t}${reset}"
+        summary+=("${green}Build succeeded for ${t}${reset}")
+    fi
+    if ! test="$(docker exec dewr bazel test //"${t}":all 2>&1)"
+    then
+        if echo "${test}" | grep "No test targets were found" &> /dev/null
+        then
+            echo -e "${blue}No tests found for ${t}${reset}"
+            summary+=("${blue}${t} has no tests${reset}")
+        else
+            echo -e "${red}Tests failed for ${t}${reset}"
+            echo "${test}"
+            summary+=("${red}${t} failed tests${reset}")
+        fi
+    else
+        echo -e "${green}Tests succeeded for ${t}${reset}"
+        summary+=("${green}Tests succeeded for ${t}${reset}")
+    fi
+done
+center() {
+    local displaywidth
+    displaywidth=$(tput cols)
+    local str="$1"
+    local padding=$(( (displaywidth - ${#str}) / 2 ))
+    printf "%*s%s%*s\n" $padding "" "$str" $padding ""
+}
+echo -e "\n"
+echo -e "$blue$(center "### Summary: ###")$reset"
+for line in "${summary[@]}"
+do
+    echo -e "$line"
+done
