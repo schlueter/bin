@@ -1,39 +1,55 @@
 #!/usr/bin/env bash
 # Usage: git-recent-refs [N|pattern]
 
-# Build array of recent branches
+set -o pipefail
+
 mapfile -t all_recent_branches < <(
     git for-each-ref --sort=-committerdate refs | awk '
-        /refs\/.*(HEAD|master)$/{next};
+        /refs\/.*(HEAD|master)$/{next}
         {
-            gsub("refs/(remotes/[^/]+|tags|heads)/", "");
+            gsub("refs/(remotes/[^/]+|tags|heads)/", "")
             if (!a[$3]++) print $3
         }'
 )
 
-# Decide how to filter
 if [[ -z "$1" || "$1" =~ ^[0-9]+$ ]]; then
     limit=${1:-10}
     select_branches=("${all_recent_branches[@]:0:limit}")
 else
     select_branches=()
+    needle=${1,,}
     for b in "${all_recent_branches[@]}"; do
-        if [[ "$b" =~ $1 ]]; then
+        if [[ "${b,,}" == *"$needle"* ]]; then
             select_branches+=("$b")
         fi
     done
 fi
 
-# Handle no matches
 if ((${#select_branches[@]} == 0)); then
-    echo "No matching branches found"
+    echo "No matching branches found" >&2
     exit 1
 fi
 
-# Selection menu
-select branch in "${select_branches[@]}"; do
+if command -v fzf >/dev/null 2>&1; then
+    branch=$(
+        printf '%s\n' "${select_branches[@]}" |
+        fzf --prompt='Checkout branch: ' --height=40% --reverse
+    )
+
     if [[ -n "$branch" ]]; then
         git checkout "$branch"
-        break
+        exit $?
+    else
+        exit 1
     fi
-done
+else
+    PS3='Checkout branch: '
+    select branch in "${select_branches[@]}"; do
+        if [[ -n "$branch" ]]; then
+            git checkout "$branch"
+            exit $?
+        else
+            echo "Invalid selection" >&2
+        fi
+    done
+fi
